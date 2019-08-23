@@ -1,0 +1,14 @@
+version: '3.6'
+services:
+  rediscluster:
+    image: 652884599935.dkr.ecr.us-east-1.amazonaws.com/devel/redis:4.0
+    command: redis-cluster
+    ports:
+      - "7100:7100"
+      - "7101:7101"
+      - "7102:7102"
+      - "7103:7103"
+      - "7104:7104"
+      - "7105:7105"
+    hostname: rediscluster
+    domainname: dev.nos.to
