@@ -20,6 +20,8 @@ import java.util.Timer;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
+import com.nosto.redis.queue.jackson.PolymorphicJacksonMessageConverter;
+
 import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.BinaryScriptingCommands;
 
@@ -69,22 +71,15 @@ public class ConnectionManager {
         }
     }
 
-    public void shutdown(Duration timeout) {
-        startUpShutdownLock.lock();
-        try {
-            if (timer == null) {
-                throw new IllegalStateException("ConnectionManager is not running.");
-            }
-
-            timer.cancel();
-
-            messagePoller.awaitTermination(timeout);
-        } finally {
-            startUpShutdownLock.unlock();
-        }
+    public boolean shutdown(Duration timeout) {
+        return shutdown(messagePoller -> messagePoller.awaitTermination(timeout));
     }
 
     public Map<String, List<Runnable>> shutdownNow() {
+        return shutdown(MessagePoller::shutdownNow);
+    }
+
+    private <T> T shutdown(Function<MessagePoller, T> shutdownFunction) {
         startUpShutdownLock.lock();
         try {
             if (timer == null) {
@@ -93,7 +88,7 @@ public class ConnectionManager {
 
             timer.cancel();
 
-            return messagePoller.shutdownNow();
+            return shutdownFunction.apply(messagePoller);
         } finally {
             startUpShutdownLock.unlock();
         }
@@ -109,29 +104,53 @@ public class ConnectionManager {
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
         private Map<String, QueueMessageHandlers> messageHandlers = new HashMap<>();
 
-        public Factory withRedisClient(BinaryScriptingCommands redisClient) throws IOException {
-            redis = new SingleNodeScript(redisClient);
+        public Factory withRedisClient(BinaryScriptingCommands redisClient) {
+            Objects.requireNonNull(redisClient);
+
+            try {
+                redis = new SingleNodeScript(redisClient);
+            } catch (IOException e) {
+                throw new IllegalStateException("Cannot connect to redis.", e);
+            }
+
             return this;
         }
 
-        public Factory withRedisClient(BinaryJedisCluster rediClusterClient, int numberSlots) throws IOException {
-            redis = new ClusterScript(rediClusterClient, numberSlots);
+        public Factory withRedisClient(BinaryJedisCluster rediClusterClient, int numberSlots) {
+            Objects.requireNonNull(rediClusterClient);
+
+            if (numberSlots <= 0) {
+                throw new IllegalArgumentException("numberSlots must be positive: " + numberSlots);
+            }
+
+            try {
+                redis = new ClusterScript(rediClusterClient, numberSlots);
+            } catch (IOException e) {
+                throw new IllegalStateException("Cannot connect to redis.", e);
+            }
+
             return this;
         }
 
         public Factory withPollDuration(Duration pollDuration) {
-            this.pollDuration = pollDuration;
+            this.pollDuration = Objects.requireNonNull(pollDuration);
             return this;
         }
 
         public Factory withMessageConverter(MessageConverter messageConverter) {
-            this.messageConverter = messageConverter;
+            this.messageConverter = Objects.requireNonNull(messageConverter);
             return this;
         }
 
-        public Factory withMessageHandler(String queueName,
+        public QueueHandlerFactory withQueueHandler(String queueName, int maxConcurrentHandlers) {
+            return new QueueHandlerFactory(this, queueName, maxConcurrentHandlers);
+        }
+
+        private Factory withMessageHandler(String queueName,
                                           int maxConcurrentHandlers,
                                           Map<Class<?>, MessageHandler<?>> messageHandlers) {
+
+
             if (messageHandlers.containsKey(queueName)) {
                 throw new IllegalArgumentException("Message handlers already added for queue " + queueName);
             }
@@ -144,6 +163,44 @@ public class ConnectionManager {
             Objects.requireNonNull(redis, "Redis client was not configured.");
 
             return new ConnectionManager(redis, pollDuration, messageConverter, messageHandlers);
+        }
+    }
+
+    public static class QueueHandlerFactory {
+        private final Factory connectionManagerFactory;
+        private final String queueName;
+        private final int maxConcurrentHandlers;
+        private final Map<Class<?>, MessageHandler<?>> messageHandlers;
+
+        private QueueHandlerFactory(Factory connectionManagerFactory,
+                                    String queueName,
+                                    int maxConcurrentHandlers) {
+            this.connectionManagerFactory = connectionManagerFactory;
+
+            this.queueName = Objects.requireNonNull(queueName)
+                    .trim()
+                    .toLowerCase();
+
+            if (maxConcurrentHandlers <= 0) {
+                throw new IllegalArgumentException("maxConcurrentHandlers must be positive: " + maxConcurrentHandlers);
+            }
+
+            this.maxConcurrentHandlers = maxConcurrentHandlers;
+
+            this.messageHandlers = new HashMap<>();
+        }
+
+        public <T> QueueHandlerFactory withMessageHandler(Class<T> messageClass, MessageHandler<T> messageHandler) {
+            messageHandlers.put(messageClass, messageHandler);
+            return this;
+        }
+
+        public ConnectionManager.Factory build() {
+            if (messageHandlers.isEmpty()) {
+                throw new IllegalArgumentException("No message handlers were configured.");
+            }
+
+            return connectionManagerFactory.withMessageHandler(queueName, maxConcurrentHandlers, messageHandlers);
         }
     }
 }

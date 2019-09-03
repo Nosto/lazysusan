@@ -25,7 +25,7 @@ class QueueMessageHandlers {
         return maxConcurrentHandlers;
     }
 
-    Optional<MessageHandler> getMessageHandler(Class<?> c) {
+    Optional<MessageHandler> getMessageHandler(Class c) {
         return Optional.ofNullable(messageHandlers.get(c));
     }
 }

@@ -19,7 +19,7 @@ class MessageSenderImpl<T> implements MessageSender<T> {
     private final Function<T, String> keyFunction;
     private final MessageConverter messageConverter;
 
-    public MessageSenderImpl(AbstractScript redis,
+    MessageSenderImpl(AbstractScript redis,
                              String queueName,
                              Function<T, String> keyFunction,
                              MessageConverter messageConverter) {

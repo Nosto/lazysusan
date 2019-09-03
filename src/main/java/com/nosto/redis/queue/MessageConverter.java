@@ -10,6 +10,6 @@
 package com.nosto.redis.queue;
 
 public interface MessageConverter {
-    <T> byte[] serialize(T messagePayload);
-    <T> T deserialize(byte[] messagePayload);
+    byte[] serialize(Object messagePayload);
+    Object deserialize(byte[] messagePayload);
 }
