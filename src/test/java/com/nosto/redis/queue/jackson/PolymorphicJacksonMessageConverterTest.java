@@ -26,6 +26,9 @@ public class PolymorphicJacksonMessageConverterTest {
         converter = new PolymorphicJacksonMessageConverter();
     }
 
+    /**
+     * Simple test verifies a class can be serialized and deserialized.
+     */
     @Test
     public void convertParent() {
         ParentPojo p = new ParentPojo("a");
@@ -36,6 +39,9 @@ public class PolymorphicJacksonMessageConverterTest {
         assertEquals("a", p.getPropertyA());
     }
 
+    /**
+     * All properties of child and parent class are serialized and deserialized.
+     */
     @Test
     public void convertChild1() {
         Child1Pojo child = new Child1Pojo("a", "b");
@@ -47,6 +53,10 @@ public class PolymorphicJacksonMessageConverterTest {
         assertEquals("b", child.getPropertyB());
     }
 
+    /**
+     * Child2 is serialized and deserialized even though it has the same properties
+     * as Child1.
+     */
     @Test
     public void convertChild2() {
         Child2Pojo child = new Child2Pojo("a", "b");

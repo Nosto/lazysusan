@@ -9,6 +9,8 @@
  ******************************************************************************/
 package com.nosto.redis.queue.model;
 
+import java.util.Objects;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -22,5 +24,25 @@ public class ParentPojo {
 
     public String getPropertyA() {
         return propertyA;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ParentPojo that = (ParentPojo) o;
+        return Objects.equals(propertyA, that.propertyA);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(propertyA);
+    }
+
+    @Override
+    public String toString() {
+        return "ParentPojo{" +
+                "propertyA='" + propertyA + '\'' +
+                '}';
     }
 }

@@ -21,6 +21,9 @@ import org.junit.runners.Parameterized;
 import com.nosto.redis.RedisClusterConnector;
 import com.nosto.redis.SingleNodeRedisConnector;
 
+/**
+ * Extend this class to run tests against a single Redis node and a Redis cluster.
+ */
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
     @ClassRule
