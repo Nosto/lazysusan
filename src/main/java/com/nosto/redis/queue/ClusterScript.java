@@ -36,7 +36,7 @@ public class ClusterScript extends AbstractScript {
         this.jedis = jedis;
         this.numSlots = numSlots;
 
-        source = IOUtils.toByteArray(getClass().getResourceAsStream("/queue.lua"));
+        source = loadScript();
         sha = jedis.scriptLoad(source, new byte[]{0}); // load it on a random host
 
         nextSlot = new IntSupplier() {
@@ -59,14 +59,7 @@ public class ClusterScript extends AbstractScript {
     @SuppressWarnings("unchecked")
     public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys) {
         return unpack(IntStream.range(0, numSlots).map(x -> nextSlot.getAsInt()).mapToObj(ClusterScript::bytes).flatMap(key ->
-                ((List<byte[]>) call(Function.DEQUEUE,
-                        key,
-                        bytes(queue),
-                        bytes(now.toEpochMilli()),
-                        bytes(maxKeys),
-                        bytes(KEY_PAYLOAD_SEPARATOR)))
-                        .stream())
-                .collect(Collectors.toList()));
+                ((List<byte[]>) call(Function.DEQUEUE, key, bytes(queue), bytes(now.toEpochMilli()), bytes(maxKeys))).stream()).collect(Collectors.toList()));
 
     }
 
