@@ -9,6 +9,7 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -17,6 +18,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import org.apache.commons.io.IOUtils;
 
 abstract class AbstractScript {
     /**
@@ -48,8 +51,7 @@ abstract class AbstractScript {
                 bytes(now.plus(invisiblePeriod).toEpochMilli()),
                 bytes(tenantMessage.getTenant()),
                 bytes(tenantMessage.getKey()),
-                tenantMessage.getPayload(),
-                bytes(KEY_PAYLOAD_SEPARATOR)));
+                tenantMessage.getPayload()));
     }
 
     /**
@@ -77,6 +79,12 @@ abstract class AbstractScript {
      */
     public void ack(String queue, String tenant, String key) {
         call(Function.ACK, slot(tenant), bytes(queue), bytes(tenant), bytes(key));
+    }
+
+    protected byte[] loadScript() throws IOException {
+        return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
+                .replace("KEY_PAYLOAD_SEPARATOR", KEY_PAYLOAD_SEPARATOR)
+                .getBytes(StandardCharsets.UTF_8);
     }
 
     Object call(Function function, byte[] key, byte[]... args) {
