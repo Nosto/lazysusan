@@ -10,7 +10,6 @@
 package com.nosto.redis;
 
 import org.junit.rules.ExternalResource;
-import org.junit.rules.TestRule;
 
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;

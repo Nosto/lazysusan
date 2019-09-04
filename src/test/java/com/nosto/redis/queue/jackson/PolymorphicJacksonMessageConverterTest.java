@@ -14,6 +14,10 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.nosto.redis.queue.model.Child1Pojo;
+import com.nosto.redis.queue.model.Child2Pojo;
+import com.nosto.redis.queue.model.ParentPojo;
+
 public class PolymorphicJacksonMessageConverterTest {
     private PolymorphicJacksonMessageConverter converter;
 
@@ -24,23 +28,20 @@ public class PolymorphicJacksonMessageConverterTest {
 
     @Test
     public void convertParent() {
-        Parent p = new Parent();
-        p.setPropertyA("a");
+        ParentPojo p = new ParentPojo("a");
 
         byte[] bytes = converter.serialize(p);
-        p = (Parent) converter.deserialize(bytes);
+        p = (ParentPojo) converter.deserialize(bytes);
 
-        assertEquals("a", p.propertyA);
+        assertEquals("a", p.getPropertyA());
     }
 
     @Test
     public void convertChild1() {
-        Child1 child = new Child1();
-        child.setPropertyA("a");
-        child.setPropertyB("b");
+        Child1Pojo child = new Child1Pojo("a", "b");
 
         byte[] bytes = converter.serialize(child);
-        child = (Child1) converter.deserialize(bytes);
+        child = (Child1Pojo) converter.deserialize(bytes);
 
         assertEquals("a", child.getPropertyA());
         assertEquals("b", child.getPropertyB());
@@ -48,50 +49,12 @@ public class PolymorphicJacksonMessageConverterTest {
 
     @Test
     public void convertChild2() {
-        Child2 child = new Child2();
-        child.setPropertyA("a");
-        child.setPropertyB("b");
+        Child2Pojo child = new Child2Pojo("a", "b");
 
         byte[] bytes = converter.serialize(child);
-        child = (Child2) converter.deserialize(bytes);
+        child = (Child2Pojo) converter.deserialize(bytes);
 
         assertEquals("a", child.getPropertyA());
         assertEquals("b", child.getPropertyB());
     }
-
-    static class Parent {
-        private String propertyA;
-
-        public String getPropertyA() {
-            return propertyA;
-        }
-
-        public void setPropertyA(String propertyA) {
-            this.propertyA = propertyA;
-        }
-    }
-
-     static class Child1 extends Parent {
-        private String propertyB;
-
-         public String getPropertyB() {
-             return propertyB;
-         }
-
-         public void setPropertyB(String propertyB) {
-             this.propertyB = propertyB;
-         }
-     }
-
-     static class Child2 extends Parent {
-        private String propertyB;
-
-         public String getPropertyB() {
-             return propertyB;
-         }
-
-         public void setPropertyB(String propertyB) {
-             this.propertyB = propertyB;
-         }
-     }
 }

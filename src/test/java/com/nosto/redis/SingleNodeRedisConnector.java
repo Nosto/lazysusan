@@ -10,6 +10,7 @@
 package com.nosto.redis;
 
 import org.junit.rules.ExternalResource;
+
 import redis.clients.jedis.Jedis;
 
 public class SingleNodeRedisConnector extends ExternalResource {

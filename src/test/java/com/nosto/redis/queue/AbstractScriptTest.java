@@ -31,13 +31,16 @@ public abstract class AbstractScriptTest {
     @Rule
     public static SingleNodeRedisConnector singleJedis = new SingleNodeRedisConnector();
 
-    @Parameterized.Parameter
+    @Parameterized.Parameter(1)
     public AbstractScript script;
 
-    @Parameterized.Parameters
-    public static Collection scripts() throws IOException {
-        return List.of(
-                new SingleNodeScript(singleJedis.getJedis()),
-                new ClusterScript(jedisCluster.getJedisCluster(), 12));
+    @Parameterized.Parameter
+    public String parameterName;
+
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> scripts() throws IOException {
+        return List.of(new Object[][] {
+                { "single", new SingleNodeScript(singleJedis.getJedis()) },
+                { "cluster", new ClusterScript(jedisCluster.getJedisCluster(), 12)}});
     }
 }
