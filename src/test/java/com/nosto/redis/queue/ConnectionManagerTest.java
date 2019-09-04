@@ -34,7 +34,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
         ConnectionManager connectionManager = new ConnectionManager.Factory()
                 .withRedisScript(script)
-                .withQueueHandler("queue1", 1)
+                .withQueueHandler("queue1", 2)
                     .withMessageHandler(Message1.class, m1Handler)
                     .withMessageHandler(Message2.class, m2Handler)
                     .build()
@@ -44,24 +44,25 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
         MessageSender<Message1> m1Sender = connectionManager.createSender("queue1", m -> "m1_" + m.getParam1());
 
-        boolean sent = m1Sender.send("t1", Duration.ofSeconds(1), new Message1("p1"));
+        Duration invisiblePeriod = Duration.ofMillis(50);
+        boolean sent = m1Sender.send("t1", invisiblePeriod, new Message1("p1"));
         assertTrue(sent);
 
-        sent = m1Sender.send("t1", Duration.ofSeconds(1), new Message1("p2"));
+        sent = m1Sender.send("t1", invisiblePeriod, new Message1("p2"));
         assertTrue(sent);
 
-        sent = m1Sender.send("t2", Duration.ofSeconds(1), new Message1("p1"));
+        sent = m1Sender.send("t2", invisiblePeriod, new Message1("p1"));
         assertTrue(sent);
 
         MessageSender<Message2> m2Sender = connectionManager.createSender("queue1", m -> "m2_" + m.getParam2());
 
-        sent = m2Sender.send("t1", Duration.ofSeconds(1), new Message2("p1"));
+        sent = m2Sender.send("t1", invisiblePeriod, new Message2("p1"));
         assertTrue(sent);
 
-        sent = m2Sender.send("t2", Duration.ofSeconds(1), new Message2("p1"));
+        sent = m2Sender.send("t2", invisiblePeriod, new Message2("p1"));
         assertTrue(sent);
 
-        sent = m2Sender.send("t2", Duration.ofSeconds(1), new Message2("p2"));
+        sent = m2Sender.send("t2", invisiblePeriod, new Message2("p2"));
         assertTrue(sent);
 
         verifyMessagesReceived(Message1.class, m1Handler, "t1", new Message1("p1"), new Message1("p2"));
@@ -80,7 +81,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     private <T> void verifyMessagesReceived(Class<T> c, MessageHandler<T> mockMessageHandler, String expectedTenant, T... expectedMessages) {
         ArgumentCaptor<T> messageCaptor = ArgumentCaptor.forClass(c);
 
-        verify(mockMessageHandler, timeout(100).times(expectedMessages.length))
+        verify(mockMessageHandler, timeout(1000).times(expectedMessages.length))
                 .handleMessage(eq(expectedTenant), messageCaptor.capture());
 
         assertEquals(Set.of(expectedMessages), Set.copyOf(messageCaptor.getAllValues()));
