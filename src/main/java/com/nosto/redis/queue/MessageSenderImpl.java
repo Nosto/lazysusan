@@ -11,6 +11,7 @@ package com.nosto.redis.queue;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.function.Function;
 
 class MessageSenderImpl<T> implements MessageSender<T> {
@@ -32,7 +33,13 @@ class MessageSenderImpl<T> implements MessageSender<T> {
     @Override
     public boolean send(String tenant, Duration invisiblePeriod, T message) {
         String key = keyFunction.apply(message);
+        Objects.requireNonNull(key);
+
         byte[] messagePayload = messageConverter.serialize(message);
+        if (messagePayload.length == 0) {
+            throw new IllegalArgumentException("Empty message payload.");
+        }
+
         AbstractScript.TenantMessage tenantMessage = new AbstractScript.TenantMessage(tenant, key, messagePayload);
         return redis.enqueue(Instant.now(), invisiblePeriod, queueName, tenantMessage);
     }

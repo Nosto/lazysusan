@@ -26,7 +26,7 @@ import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.BinaryScriptingCommands;
 
 public class ConnectionManager {
-    private final AbstractScript redis;
+    private final AbstractScript redisScript;
     private final Duration pollDuration;
     private final MessageConverter messageConverter;
     private final Map<String, QueueMessageHandlers> queueMessageHandlers;
@@ -36,21 +36,21 @@ public class ConnectionManager {
 
     private Timer timer;
 
-    private ConnectionManager(AbstractScript redis,
+    private ConnectionManager(AbstractScript redisScript,
                               Duration pollDuration,
                               MessageConverter messageConverter,
                               Map<String, QueueMessageHandlers> messageHanders) {
-        this.redis = redis;
+        this.redisScript = redisScript;
         this.pollDuration = pollDuration;
         this.messageConverter = messageConverter;
         this.queueMessageHandlers = messageHanders;
 
         startUpShutdownLock = new ReentrantLock();
-        messagePoller = new MessagePoller(redis, messageConverter, queueMessageHandlers);
+        messagePoller = new MessagePoller(redisScript, messageConverter, queueMessageHandlers);
     }
 
     public <T> MessageSender<T> createSender(String queueName, Function<T, String> keyFunction) {
-        return new MessageSenderImpl<>(redis, queueName, keyFunction, messageConverter);
+        return new MessageSenderImpl<>(redisScript, queueName, keyFunction, messageConverter);
     }
 
     public void start() {
@@ -99,7 +99,7 @@ public class ConnectionManager {
     }
 
     public static class Factory {
-        private AbstractScript redis;
+        private AbstractScript redisScript;
         private Duration pollDuration = Duration.ofMillis(100);
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
         private Map<String, QueueMessageHandlers> messageHandlers = new HashMap<>();
@@ -108,12 +108,10 @@ public class ConnectionManager {
             Objects.requireNonNull(redisClient);
 
             try {
-                redis = new SingleNodeScript(redisClient);
+                return withRedisScript(new SingleNodeScript(redisClient));
             } catch (IOException e) {
                 throw new IllegalStateException("Cannot connect to redis.", e);
             }
-
-            return this;
         }
 
         public Factory withRedisClient(BinaryJedisCluster rediClusterClient, int numberSlots) {
@@ -124,11 +122,14 @@ public class ConnectionManager {
             }
 
             try {
-                redis = new ClusterScript(rediClusterClient, numberSlots);
+                return withRedisScript(new ClusterScript(rediClusterClient, numberSlots));
             } catch (IOException e) {
                 throw new IllegalStateException("Cannot connect to redis.", e);
             }
+        }
 
+        Factory withRedisScript(AbstractScript redisScript) {
+            this.redisScript = Objects.requireNonNull(redisScript);
             return this;
         }
 
@@ -160,9 +161,9 @@ public class ConnectionManager {
         }
 
         public ConnectionManager build() {
-            Objects.requireNonNull(redis, "Redis client was not configured.");
+            Objects.requireNonNull(redisScript, "Redis client was not configured.");
 
-            return new ConnectionManager(redis, pollDuration, messageConverter, messageHandlers);
+            return new ConnectionManager(redisScript, pollDuration, messageConverter, messageHandlers);
         }
     }
 

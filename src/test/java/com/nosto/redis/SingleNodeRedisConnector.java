@@ -22,4 +22,18 @@ public class SingleNodeRedisConnector extends ExternalResource {
     public Jedis getJedis() {
         return jedis;
     }
+
+    public void flush() {
+        jedis.flushDB();
+    }
+
+    @Override
+    protected void before() throws Throwable {
+        flush();
+    }
+
+    @Override
+    protected void after() {
+        flush();
+    }
 }
