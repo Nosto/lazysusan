@@ -30,10 +30,10 @@ class MessageSenderImpl<T> implements MessageSender<T> {
     }
 
     @Override
-    public void send(String tenant, Duration invisiblePeriod, T message) {
+    public boolean send(String tenant, Duration invisiblePeriod, T message) {
         String key = keyFunction.apply(message);
         byte[] messagePayload = messageConverter.serialize(message);
         AbstractScript.TenantMessage tenantMessage = new AbstractScript.TenantMessage(tenant, key, messagePayload);
-        redis.enqueue(Instant.now(), invisiblePeriod, queueName, tenantMessage);
+        return redis.enqueue(Instant.now(), invisiblePeriod, queueName, tenantMessage);
     }
 }

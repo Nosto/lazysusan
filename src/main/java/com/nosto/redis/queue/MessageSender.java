@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
  * <p>
@@ -13,5 +12,5 @@ package com.nosto.redis.queue;
 import java.time.Duration;
 
 public interface MessageSender<T> {
-    void send(String tenant, Duration invisiblePeriod, T message);
+    boolean send(String tenant, Duration invisiblePeriod, T message);
 }

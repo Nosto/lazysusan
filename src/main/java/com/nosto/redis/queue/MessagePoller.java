@@ -61,6 +61,9 @@ class MessagePoller extends TimerTask {
             }
 
             redis.dequeue(now, queueName, batchSize).forEach(message -> {
+                logger.debug("Received message for tenent {} and key {}",
+                        message.getTenant(), message.getKey());
+
                 handleMessage(threadPool, queueName, handlers, message);
             });
         });
