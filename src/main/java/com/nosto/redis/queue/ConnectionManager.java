@@ -72,7 +72,7 @@ public class ConnectionManager {
     }
 
     public boolean shutdown(Duration timeout) {
-        return shutdown(messagePoller -> messagePoller.awaitTermination(timeout));
+        return shutdown(messagePoller -> messagePoller.shutdown(timeout));
     }
 
     public Map<String, List<Runnable>> shutdownNow() {

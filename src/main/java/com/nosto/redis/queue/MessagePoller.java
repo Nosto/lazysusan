@@ -11,6 +11,7 @@ package com.nosto.redis.queue;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,24 +97,26 @@ class MessagePoller extends TimerTask {
                     handlers.getMaxConcurrentHandlers(),
                     50L,
                     TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<>(0),
+                    new ArrayBlockingQueue<>(handlers.getMaxConcurrentHandlers()),
                     new NamedThreadFactory(queueName + "-handler-"),
                     new ThreadPoolExecutor.AbortPolicy());
         });
     }
 
-    private <R> Stream<Result<R>> processThreadPools(BiFunction<String, ThreadPoolExecutor, R> function) {
+    private <R> Stream<Map.Entry<String, R>> processThreadPools(BiFunction<String, ThreadPoolExecutor, R> function) {
         return threadPools.entrySet()
                 .stream()
                 .map(e -> {
                     String queueName = e.getKey();
                     R r = function.apply(queueName, e.getValue());
-                    return new Result<>(queueName, r);
+                    return new AbstractMap.SimpleEntry<>(queueName, r);
                 });
     }
 
-    boolean awaitTermination(Duration timeout) {
+    boolean shutdown(Duration timeout) {
         return processThreadPools((queueName, threadPoolExecutor) -> {
+            threadPoolExecutor.shutdown();
+
             try {
                 return threadPoolExecutor.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
@@ -122,35 +125,17 @@ class MessagePoller extends TimerTask {
             }
 
             return false;
-        }).map(Result::getResult).allMatch(Boolean.TRUE::equals);
+        }).map(Map.Entry::getValue).allMatch(Boolean.TRUE::equals);
     }
 
     Map<String, List<Runnable>> shutdownNow() {
         return processThreadPools((queueName, threadPoolExecutor) -> threadPoolExecutor.shutdownNow())
-                .collect(Collectors.toMap(Result::getQueueName, Result::getResult));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     Integer getActiveMessageHandlerCount() {
         return processThreadPools((queueName, threadPoolExecutor) -> threadPoolExecutor.getActiveCount())
-                .map(Result::getResult)
+                .map(Map.Entry::getValue)
                 .reduce(0, Integer::sum);
-    }
-
-    static class Result<T> {
-        private final String queueName;
-        private final T result;
-
-        Result(String queueName, T result) {
-            this.queueName = queueName;
-            this.result = result;
-        }
-
-        String getQueueName() {
-            return queueName;
-        }
-
-        T getResult() {
-            return result;
-        }
     }
 }

@@ -10,14 +10,18 @@
 package com.nosto.redis.queue;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nosto.redis.SingleNodeRedisConnector;
@@ -25,31 +29,52 @@ import com.nosto.redis.SingleNodeRedisConnector;
 public class ConnectionManagerTest {
     @Test
     public void testSingleNode() {
-        Map<String, List<Message1>> m1Messages = new HashMap<>();
-        Map<String, List<Message2>> m2Messages = new HashMap<>();
+        MessageHandler<Message1> message1Handler = mock(MessageHandler.class);
+        MessageHandler<Message2> message2Handler = mock(MessageHandler.class);
 
         ConnectionManager connectionManager = new ConnectionManager.Factory()
                 .withRedisClient(new SingleNodeRedisConnector().getJedis())
-                .withQueueHandler("queue", 1)
-                .withMessageHandler(Message1.class, (t, m) ->  m1Messages.computeIfAbsent(t, k -> new ArrayList<>()).add(m))
-                .withMessageHandler(Message2.class, (t, m) ->  m2Messages.computeIfAbsent(t, k -> new ArrayList<>()).add(m))
-                .build()
+                .withQueueHandler("queue1", 1)
+                    .withMessageHandler(Message1.class, message1Handler)
+                    .withMessageHandler(Message2.class, message2Handler)
+                    .build()
                 .build();
 
         connectionManager.start();
 
         MessageSender<Message1> m1Sender = connectionManager.createSender("queue1", Message1::getParam1);
-        m1Sender.send("t1", Duration.ofSeconds(1), new Message1("p1"));
-        m1Sender.send("t1", Duration.ofSeconds(1), new Message1("p2"));
-        m1Sender.send("t2", Duration.ofSeconds(1), new Message1("p1"));
+        m1Sender.send("t1", Duration.ofMillis(1), new Message1("p1"));
+        m1Sender.send("t1", Duration.ofMillis(1), new Message1("p2"));
+        m1Sender.send("t2", Duration.ofMillis(1), new Message1("p1"));
 
-        MessageSender<Message2> m2Sender = connectionManager.createSender("queue2", Message2::getParam2);
-        m2Sender.send("t1", Duration.ofSeconds(1), new Message2("p1"));
-        m2Sender.send("t2", Duration.ofSeconds(1), new Message2("p1"));
-        m2Sender.send("t2", Duration.ofSeconds(1), new Message2("p2"));
+        MessageSender<Message2> m2Sender = connectionManager.createSender("queue1", Message2::getParam2);
+        m2Sender.send("t1", Duration.ofMillis(1), new Message2("p1"));
+        m2Sender.send("t2", Duration.ofMillis(1), new Message2("p1"));
+        m2Sender.send("t2", Duration.ofMillis(1), new Message2("p2"));
+
+        verify(message1Handler, timeout(100)).handleMessage(eq("t1"), argMatcher(Message1::getParam1, "p1"));
+        verify(message1Handler, timeout(100)).handleMessage(eq("t1"), argMatcher(Message1::getParam1, "p1"));
+        verify(message1Handler, timeout(100)).handleMessage(eq("t1"), argMatcher(Message1::getParam1, "p2"));
+
+        verify(message2Handler, timeout(100)).handleMessage(eq("t1"), argMatcher(Message2::getParam2, "p1"));
+        verify(message2Handler, timeout(100)).handleMessage(eq("t2"), argMatcher(Message2::getParam2, "p1"));
+        verify(message2Handler, timeout(100)).handleMessage(eq("t2"), argMatcher(Message2::getParam2, "p2"));
 
         boolean success = connectionManager.shutdown(Duration.ofSeconds(2));
         assertTrue(success);
+
+        verifyNoMoreInteractions(message1Handler);
+        verifyNoMoreInteractions(message2Handler);
+    }
+
+    private <T, R> T argMatcher(Function<T, R> valueExtractor, R value) {
+        return argThat(new ArgumentMatcher<T>() {
+            @Override
+            public boolean matches(Object argument) {
+                T arg = (T) argument;
+                return value.equals(valueExtractor.apply(arg));
+            }
+        });
     }
 
     public static class Message1 {
