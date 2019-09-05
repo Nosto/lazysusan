@@ -42,9 +42,4 @@ public class RedisClusterConnector extends ExternalResource {
     protected void before() throws Throwable {
         flush();
     }
-
-    @Override
-    protected void after() {
-        flush();
-    }
 }

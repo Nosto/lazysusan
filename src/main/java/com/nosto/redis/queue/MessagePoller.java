@@ -41,7 +41,21 @@ class MessagePoller extends TimerTask {
         this.redis = redis;
         this.messageConverter = messageConverter;
         this.messageHanders = messageHanders;
-        threadPools = new HashMap<>(messageHanders.size());
+
+        threadPools = new HashMap<>();
+        messageHanders.forEach((queueName, messageHandler) -> {
+            logger.debug("Creating thread pool for {} with max pool size {}",
+                    queueName, messageHandler.getMaxConcurrentHandlers());
+
+            threadPools.put(queueName, new ThreadPoolExecutor(
+                    0,
+                    messageHandler.getMaxConcurrentHandlers(),
+                    50L,
+                    TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(messageHandler.getMaxConcurrentHandlers()),
+                    new NamedThreadFactory(queueName + "-handler-"),
+                    new ThreadPoolExecutor.AbortPolicy()));
+        });
     }
 
     @Override
@@ -49,7 +63,7 @@ class MessagePoller extends TimerTask {
         Instant now = Instant.now();
 
         messageHanders.forEach((queueName, handlers) -> {
-            ThreadPoolExecutor threadPool = getThreadPool(queueName, handlers);
+            ThreadPoolExecutor threadPool = threadPools.get(queueName);
 
             int maxHandlerCount = threadPool.getMaximumPoolSize();
             int activeHandlerCount = threadPool.getActiveCount();
@@ -90,22 +104,6 @@ class MessagePoller extends TimerTask {
         });
     }
 
-    private ThreadPoolExecutor getThreadPool(String queueName, QueueMessageHandlers handlers) {
-        return threadPools.computeIfAbsent(queueName, qn -> {
-            logger.debug("Creating thread pool for {} with max pool size {}",
-                    queueName, handlers.getMaxConcurrentHandlers());
-
-            return new ThreadPoolExecutor(
-                    0,
-                    handlers.getMaxConcurrentHandlers(),
-                    50L,
-                    TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<>(handlers.getMaxConcurrentHandlers()),
-                    new NamedThreadFactory(queueName + "-handler-"),
-                    new ThreadPoolExecutor.AbortPolicy());
-        });
-    }
-
     private <R> Stream<Map.Entry<String, R>> processThreadPools(BiFunction<String, ThreadPoolExecutor, R> function) {
         return threadPools.entrySet()
                 .stream()
@@ -136,9 +134,9 @@ class MessagePoller extends TimerTask {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    Integer getActiveMessageHandlerCount() {
-        return processThreadPools((queueName, threadPoolExecutor) -> threadPoolExecutor.getActiveCount())
+    boolean isRunning() {
+        return processThreadPools((queueName, threadPoolExecutor) -> threadPoolExecutor)
                 .map(Map.Entry::getValue)
-                .reduce(0, Integer::sum);
+                .anyMatch(tp -> !(tp.isShutdown() && tp.isTerminated()));
     }
 }

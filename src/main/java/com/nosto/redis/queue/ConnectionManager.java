@@ -65,7 +65,7 @@ public class ConnectionManager {
             }
 
             timer = new Timer();
-            timer.scheduleAtFixedRate(messagePoller, 1, pollDuration.toMillis());
+            timer.scheduleAtFixedRate(messagePoller, pollDuration.toMillis(), pollDuration.toMillis());
         } finally {
             startUpShutdownLock.unlock();
         }
@@ -95,7 +95,7 @@ public class ConnectionManager {
     }
 
     public boolean isRunning() {
-        return timer != null || messagePoller.getActiveMessageHandlerCount() > 0;
+        return timer != null && messagePoller.isRunning();
     }
 
     public static class Factory {

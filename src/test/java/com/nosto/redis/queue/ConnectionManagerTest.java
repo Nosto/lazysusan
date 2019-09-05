@@ -9,20 +9,28 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.junit.After;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -31,6 +39,21 @@ import com.nosto.redis.queue.model.Child2Pojo;
 import com.nosto.redis.queue.model.ParentPojo;
 
 public class ConnectionManagerTest extends AbstractScriptTest {
+    private static final Logger logger = LogManager.getLogger(ConnectionManagerTest.class);
+
+    private static final Duration INVISIBLE_DURATION = Duration.ofMillis(50);
+    private static final Duration SHUTDOWN_DURATION = Duration.ofSeconds(2);
+
+    private ConnectionManager connectionManager;
+
+    @After
+    public void tearDown() throws Exception {
+        if (connectionManager != null && connectionManager.isRunning()) {
+            logger.warn("ConnectionManager is still running.");
+            connectionManager.shutdownNow();
+        }
+    }
+
     /**
      * All messages are successfully sent and received.
      */
@@ -39,29 +62,22 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         MessageHandler<Child1Pojo> c1Handler = mock(MessageHandler.class);
         MessageHandler<Child2Pojo> c2Handler = mock(MessageHandler.class);
 
-        ConnectionManager connectionManager = new ConnectionManager.Factory()
-                .withRedisScript(script)
-                .withQueueHandler("q1", 2)
-                    .withMessageHandler(Child1Pojo.class, c1Handler)
-                    .withMessageHandler(Child2Pojo.class, c2Handler)
-                    .build()
-                .build();
-
-        connectionManager.start();
-
-        Duration invisiblePeriod = Duration.ofMillis(50);
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", 2)
+                .withMessageHandler(Child1Pojo.class, c1Handler)
+                .withMessageHandler(Child2Pojo.class, c2Handler)
+                .build());
 
         MessageSender<Child1Pojo> m1Sender = connectionManager.createSender("q1", m -> "m1_" + m.getPropertyA());
 
-        assertTrue(m1Sender.send("t1", invisiblePeriod, new Child1Pojo("a1", "b1")));
-        assertTrue(m1Sender.send("t1", invisiblePeriod, new Child1Pojo("a2", "b2")));
-        assertTrue(m1Sender.send("t2", invisiblePeriod, new Child1Pojo("a1", "b1")));
+        assertTrue(m1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
+        assertTrue(m1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a2", "b2")));
+        assertTrue(m1Sender.send("t2", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
 
         MessageSender<Child2Pojo> m2Sender = connectionManager.createSender("q1", m -> "m2_" + m.getPropertyA());
 
-        assertTrue(m2Sender.send("t1", invisiblePeriod, new Child2Pojo("a1", "b1")));
-        assertTrue(m2Sender.send("t2", invisiblePeriod, new Child2Pojo("a1", "b1")));
-        assertTrue(m2Sender.send("t2", invisiblePeriod, new Child2Pojo("a2", "b2")));
+        assertTrue(m2Sender.send("t1", INVISIBLE_DURATION, new Child2Pojo("a1", "b1")));
+        assertTrue(m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a1", "b1")));
+        assertTrue(m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a2", "b2")));
 
         verifyMessagesReceived(Child1Pojo.class, c1Handler, "t1", new Child1Pojo("a1", "b1"), new Child1Pojo("a2", "b2"));
         verifyMessagesReceived(Child1Pojo.class, c1Handler, "t2", new Child1Pojo("a1", "b1"));
@@ -69,11 +85,10 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         verifyMessagesReceived(Child2Pojo.class, c2Handler, "t1", new Child2Pojo("a1", "b1"));
         verifyMessagesReceived(Child2Pojo.class, c2Handler, "t2", new Child2Pojo("a1", "b1"), new Child2Pojo("a2", "b2"));
 
-        boolean success = connectionManager.shutdown(Duration.ofSeconds(2));
-        assertTrue(success);
-
         verifyNoMoreInteractions(c1Handler);
         verifyNoMoreInteractions(c2Handler);
+
+        stopConnectionManager();
     }
 
     /**
@@ -83,14 +98,9 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void retryOnError() {
         MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
 
-        ConnectionManager connectionManager = new ConnectionManager.Factory()
-                .withRedisScript(script)
-                .withQueueHandler("q", 1)
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q", 1)
                 .withMessageHandler(ParentPojo.class, handler)
-                .build()
-                .build();
-
-        connectionManager.start();
+                .build());
 
         ParentPojo message = new ParentPojo("a");
 
@@ -98,15 +108,12 @@ public class ConnectionManagerTest extends AbstractScriptTest {
                 .when(handler).handleMessage(eq("t"), eq(message));
 
         MessageSender<ParentPojo> messageSender = connectionManager.createSender("q", ParentPojo::getPropertyA);
-        
-        assertTrue(messageSender.send("t", Duration.ofMillis(50), message));
-        
+
+        assertTrue(messageSender.send("t", INVISIBLE_DURATION, message));
+
         verifyMessagesReceived(ParentPojo.class, handler, "t", message);
 
-        boolean success = connectionManager.shutdown(Duration.ofSeconds(2));
-        assertTrue(success);
-
-        verifyNoMoreInteractions(handler);
+        stopConnectionManager();
 
         List<AbstractScript.TenantMessage> messages = script.dequeue(Instant.now().plusSeconds(2), "q", 100);
         assertEquals(1, messages.size());
@@ -114,12 +121,81 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         assertEquals("a", messages.get(0).getKey());
     }
 
+    /**
+     * A handler only handles messages for a specific queue.
+     */
+    @Test
+    public void handlerForQueue() {
+        MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
+
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", 2)
+                .withMessageHandler(ParentPojo.class, handler)
+                .build());
+
+        MessageSender<ParentPojo> messageSender = connectionManager.createSender("q2", ParentPojo::getPropertyA);
+        messageSender.send("t", INVISIBLE_DURATION, new ParentPojo("a"));
+
+        stopConnectionManager();
+
+        // handler is never invoked because the message was sent to q2
+        verifyZeroInteractions(handler);
+    }
+
+    @Test
+    public void shutdownWithoutStartup() {
+        MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
+
+        connectionManager = new ConnectionManager.Factory()
+                .withRedisScript(script)
+                .withQueueHandler("q1", 2)
+                    .withMessageHandler(ParentPojo.class, handler)
+                    .build()
+                .build();
+
+        try {
+            connectionManager.shutdown(SHUTDOWN_DURATION);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+        }
+    }
+
+    @Test
+    public void startupWithoutHandlers() {
+        connectionManager = new ConnectionManager.Factory()
+                .withRedisScript(script)
+                .build();
+
+        try {
+            connectionManager.shutdown(SHUTDOWN_DURATION);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+        }
+    }
+
+    private void configureAndStartConnectionManager(Function<ConnectionManager.Factory, ConnectionManager.Factory> factoryConfigurator) {
+        ConnectionManager.Factory connectionManagerFactory = new ConnectionManager.Factory()
+                .withRedisScript(script);
+
+        connectionManager = factoryConfigurator.apply(connectionManagerFactory)
+                .build();
+
+        connectionManager.start();
+
+        assertTrue(connectionManager.isRunning());
+    }
+
+    private void stopConnectionManager() {
+        boolean success = connectionManager.shutdown(SHUTDOWN_DURATION);
+        assertTrue(success);
+        assertFalse(connectionManager.isRunning());
+    }
+
     private <T> void verifyMessagesReceived(Class<T> c, MessageHandler<T> mockMessageHandler, String expectedTenant, T... expectedMessages) {
         ArgumentCaptor<T> messageCaptor = ArgumentCaptor.forClass(c);
 
-        verify(mockMessageHandler, timeout(1000).times(expectedMessages.length))
+        verify(mockMessageHandler, timeout(SHUTDOWN_DURATION.toMillis()).times(expectedMessages.length))
                 .handleMessage(eq(expectedTenant), messageCaptor.capture());
 
-        assertEquals(Set.of(expectedMessages), Set.copyOf(messageCaptor.getAllValues()));
+        assertEquals(Set.of(expectedMessages), new HashSet<>(messageCaptor.getAllValues()));
     }
 }

@@ -14,7 +14,12 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 class MessageSenderImpl<T> implements MessageSender<T> {
+    private static final Logger logger = LogManager.getLogger(MessageSenderImpl.class);
+
     private final AbstractScript redis;
     private final String queueName;
     private final Function<T, String> keyFunction;
@@ -41,6 +46,8 @@ class MessageSenderImpl<T> implements MessageSender<T> {
         }
 
         AbstractScript.TenantMessage tenantMessage = new AbstractScript.TenantMessage(tenant, key, messagePayload);
+        logger.debug("Enqueueing message tenant={}, key={}",
+                tenant, key);
         return redis.enqueue(Instant.now(), invisiblePeriod, queueName, tenantMessage);
     }
 }
