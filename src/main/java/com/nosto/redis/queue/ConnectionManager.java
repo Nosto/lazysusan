@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import com.nosto.redis.queue.jackson.PolymorphicJacksonMessageConverter;
@@ -26,19 +29,25 @@ import redis.clients.jedis.BinaryScriptingCommands;
 public class ConnectionManager {
     private final AbstractScript redisScript;
     private final MessageConverter messageConverter;
-    private final Map<String, QueueHandlerConfiguration> queueMessageHandlers;
-
-    private final MessagePoller messagePoller;
+    private final int dequeueSize;
+    private final Duration pollPeriod;
+    private final Map<String, Map<Class<?>, MessageHandler<?>>> messageHandlers;
+    private final ScheduledThreadPoolExecutor queuePollerThreadPool;
+    private final ReentrantLock startUpShutdownLock;
 
     private ConnectionManager(AbstractScript redisScript,
-                              Duration pollPeriod,
                               MessageConverter messageConverter,
-                              Map<String, QueueHandlerConfiguration> messageHanders) {
+                              Duration pollPeriod,
+                              int dequeueSize,
+                              Map<String, Map<Class<?>, MessageHandler<?>>> messageHanders) {
         this.redisScript = redisScript;
         this.messageConverter = messageConverter;
-        this.queueMessageHandlers = messageHanders;
+        this.dequeueSize = dequeueSize;
+        this.pollPeriod = pollPeriod;
+        this.messageHandlers = messageHanders;
 
-        messagePoller = new MessagePoller(redisScript, pollPeriod, messageConverter, queueMessageHandlers);
+        this.queuePollerThreadPool = new ScheduledThreadPoolExecutor(0);
+        this.startUpShutdownLock = new ReentrantLock();
     }
 
     /**
@@ -54,39 +63,71 @@ public class ConnectionManager {
     /**
      * Start polling for messages.
      * @throws IllegalStateException if {@link #start()} was previously called.
+     * @throws IllegalStateException if {@link #shutdown(Duration)}} or {@link #shutdownNow()} were previously called.
      * @throws IllegalStateException if no queue message handlers have been configured.
      */
     public void start() {
-        messagePoller.start();
+        startUpShutdownLock.lock();
+        try {
+            if (messageHandlers.isEmpty()) {
+                throw new IllegalStateException("No queue message handlers have been defined.");
+            }
+
+            if (isRunning()) {
+                throw new IllegalStateException("Already running.");
+            }
+
+            if (queuePollerThreadPool.isShutdown()) {
+                throw new IllegalStateException("Already shut down.");
+            }
+
+            messageHandlers.forEach((queueName, queueMessageHandlers) -> {
+                QueuePoller queuePoller =
+                        new QueuePoller(redisScript, messageConverter, queueName, dequeueSize, queueMessageHandlers);
+
+                queuePollerThreadPool.scheduleAtFixedRate(queuePoller,
+                        pollPeriod.toMillis(),
+                        pollPeriod.toMillis(),
+                        TimeUnit.MILLISECONDS);
+            });
+        } finally {
+            startUpShutdownLock.unlock();
+        }
     }
 
     /**
      * Stop polling for messages.
      * @param timeout The amount of time to wait for polling and message handling to stop.
      * @return {@code true} if shut down has completed within {@code timeout}.
-     * @throws IllegalStateException if {@link #start()} was not previously called.
      */
-    public boolean shutdown(Duration timeout) {
-        return shutdown(messagePoller -> messagePoller.shutdown(timeout));
+    public boolean shutdown(Duration timeout) throws InterruptedException {
+        startUpShutdownLock.lock();
+        try {
+            queuePollerThreadPool.shutdown();
+            return queuePollerThreadPool.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        } finally {
+            startUpShutdownLock.unlock();
+        }
     }
 
     /**
      * Stop polling for messages and cancel any message handlers that are currently running.
      * @return A {@link List} of cancelled message handlers for each queue.
      */
-    public Map<String, List<Runnable>> shutdownNow() {
-        return shutdown(MessagePoller::shutdownNow);
-    }
-
-    private <T> T shutdown(Function<MessagePoller, T> shutdownFunction) {
-        return shutdownFunction.apply(messagePoller);
+    public List<Runnable> shutdownNow() {
+        startUpShutdownLock.lock();
+        try {
+            return queuePollerThreadPool.shutdownNow();
+        } finally {
+            startUpShutdownLock.unlock();
+        }
     }
 
     /**
      * @return true if Redis is being polled or if any dequeued messages are being handled.
      */
     public boolean isRunning() {
-        return messagePoller.isRunning();
+        return !queuePollerThreadPool.isShutdown() && queuePollerThreadPool.getTaskCount() > 0L;
     }
 
     /**
@@ -99,8 +140,9 @@ public class ConnectionManager {
     public static class Factory {
         private AbstractScript redisScript;
         private Duration pollPeriod = Duration.ofMillis(100);
+        private int dequeueSize = 100;
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
-        private Map<String, QueueHandlerConfiguration> queueHandlerConfigurations = new HashMap<>();
+        private Map<String, Map<Class<?>, MessageHandler<?>>> messageHandlers = new HashMap<>();
 
         private Factory() {
         }
@@ -149,6 +191,15 @@ public class ConnectionManager {
             return this;
         }
 
+        public Factory withDequeueSize(int dequeueSize) {
+            if (dequeueSize <= 0) {
+                throw new IllegalArgumentException("dequeueSize must be positive: " + dequeueSize);
+            }
+
+            this.dequeueSize = dequeueSize;
+            return this;
+        }
+
         /**
          * Determine how messages are serialised to Redis and deserialised from Redis.
          * Default value is an instance of {@link PolymorphicJacksonMessageConverter}.
@@ -161,50 +212,37 @@ public class ConnectionManager {
         /**
          * Add a new configuration for handling queue messages.
          */
-        public QueueHandlerConfigurationFactory withQueueHandler(String queueName, int maxConcurrentHandlers) {
-            return new QueueHandlerConfigurationFactory(this, queueName, maxConcurrentHandlers);
+        public QueueHandlerConfigurationFactory withQueueHandler(String queueName) {
+            return new QueueHandlerConfigurationFactory(this, queueName);
         }
 
-        private Factory withMessageHandler(String queueName,
-                                          int maxConcurrentHandlers,
-                                          Map<Class<?>, MessageHandler<?>> messageHandlers) {
-
-
+        private Factory withMessageHandler(String queueName, Map<Class<?>, MessageHandler<?>> messageHandlers) {
             if (messageHandlers.containsKey(queueName)) {
                 throw new IllegalArgumentException("Message handlers already added for queue " + queueName);
             }
 
-            this.queueHandlerConfigurations.put(queueName, new QueueHandlerConfiguration(maxConcurrentHandlers, messageHandlers));
+            this.messageHandlers.put(queueName, messageHandlers);
             return this;
         }
 
         public ConnectionManager build() {
             Objects.requireNonNull(redisScript, "Redis client was not configured.");
 
-            return new ConnectionManager(redisScript, pollPeriod, messageConverter, queueHandlerConfigurations);
+            return new ConnectionManager(redisScript, messageConverter, pollPeriod, dequeueSize, messageHandlers);
         }
     }
 
     public static class QueueHandlerConfigurationFactory {
         private final Factory connectionManagerFactory;
         private final String queueName;
-        private final int maxConcurrentHandlers;
         private final Map<Class<?>, MessageHandler<?>> messageHandlers;
 
-        private QueueHandlerConfigurationFactory(Factory connectionManagerFactory,
-                                                 String queueName,
-                                                 int maxConcurrentHandlers) {
+        private QueueHandlerConfigurationFactory(Factory connectionManagerFactory, String queueName) {
             this.connectionManagerFactory = connectionManagerFactory;
 
             this.queueName = Objects.requireNonNull(queueName)
                     .trim()
                     .toLowerCase();
-
-            if (maxConcurrentHandlers <= 0) {
-                throw new IllegalArgumentException("maxConcurrentHandlers must be positive: " + maxConcurrentHandlers);
-            }
-
-            this.maxConcurrentHandlers = maxConcurrentHandlers;
 
             this.messageHandlers = new HashMap<>();
         }
@@ -222,7 +260,7 @@ public class ConnectionManager {
                 throw new IllegalArgumentException("No message handlers were configured.");
             }
 
-            return connectionManagerFactory.withMessageHandler(queueName, maxConcurrentHandlers, messageHandlers);
+            return connectionManagerFactory.withMessageHandler(queueName, messageHandlers);
         }
     }
 }

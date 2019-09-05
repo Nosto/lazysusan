@@ -58,11 +58,11 @@ public class ConnectionManagerTest extends AbstractScriptTest {
      * All messages are successfully sent and received.
      */
     @Test
-    public void receivedMessages() {
+    public void receivedMessages() throws Exception {
         MessageHandler<Child1Pojo> c1Handler = mock(MessageHandler.class);
         MessageHandler<Child2Pojo> c2Handler = mock(MessageHandler.class);
 
-        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", 2)
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1")
                 .withMessageHandler(Child1Pojo.class, c1Handler)
                 .withMessageHandler(Child2Pojo.class, c2Handler)
                 .build());
@@ -95,10 +95,10 @@ public class ConnectionManagerTest extends AbstractScriptTest {
      * Message becomes visible again if message handler throws exception while handling.
      */
     @Test
-    public void retryOnError() {
+    public void retryOnError() throws Exception {
         MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
 
-        configureAndStartConnectionManager(f -> f.withQueueHandler("q", 1)
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q")
                 .withMessageHandler(ParentPojo.class, handler)
                 .build());
 
@@ -125,10 +125,10 @@ public class ConnectionManagerTest extends AbstractScriptTest {
      * A handler only handles messages for a specific queue.
      */
     @Test
-    public void handlerForQueue() {
+    public void handlerForQueue() throws Exception {
         MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
 
-        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", 2)
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1")
                 .withMessageHandler(ParentPojo.class, handler)
                 .build());
 
@@ -154,6 +154,38 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         }
     }
 
+    @Test
+    public void startupTwice() {
+        MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
+
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1")
+                .withMessageHandler(ParentPojo.class, handler)
+                .build());
+
+        try {
+            connectionManager.start();
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+        }
+    }
+
+    @Test
+    public void startupAfterShutdown() throws Exception {
+        MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
+
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1")
+                .withMessageHandler(ParentPojo.class, handler)
+                .build());
+
+        stopConnectionManager();
+
+        try {
+            connectionManager.start();
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+        }
+    }
+
     private void configureAndStartConnectionManager(Function<ConnectionManager.Factory, ConnectionManager.Factory> factoryConfigurator) {
         ConnectionManager.Factory connectionManagerFactory = ConnectionManager.factory()
                 .withRedisScript(script);
@@ -166,7 +198,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         assertTrue(connectionManager.isRunning());
     }
 
-    private void stopConnectionManager() {
+    private void stopConnectionManager() throws Exception {
         boolean success = connectionManager.shutdown(SHUTDOWN_DURATION);
         assertTrue(success);
         assertFalse(connectionManager.isRunning());
