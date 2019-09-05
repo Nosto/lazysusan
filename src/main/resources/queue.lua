@@ -1,5 +1,6 @@
 local public = {}
 local private = {}
+local keyseparator = "KEY_PAYLOAD_SEPARATOR"
 
 function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
     local deduplicator_key = private.deduplicator_key(slot, queue)
@@ -13,7 +14,7 @@ function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
         if not redis.call("zrank", schedule_key, tenant) then
             redis.call("zadd", schedule_key, nexttime, tenant)
         end
-        redis.call("rpush", private.visible_key(slot, queue, tenant), key .. ":" .. payload)
+        redis.call("rpush", private.visible_key(slot, queue, tenant), key .. keyseparator .. payload)
         redis.call("sadd", deduplicator_key, deduplicator_member)
         return true
     else
@@ -33,7 +34,7 @@ function public.dequeue(slot, queue, time, maxkeys)
         if next(invisible) == nil then
             local packed = redis.call("lpop", private.visible_key(slot, queue, tenant))
             if packed then
-                local key, payload = private.split(packed, ":")
+                local key, payload = private.split(packed, keyseparator)
 
                 redis.call("zadd", invisible_key, nexttime, key)
                 redis.call("hset", private.invisible_payload_key(slot, queue, tenant), key, payload)
@@ -97,7 +98,7 @@ end
 -- splits given string by a separator
 -------------------------------------------------------------------------------
 function private.split(str, separator)
-    return str:match("([^_]+)" .. separator .. "([^_]+)")
+    return str:match("([^" .. separator .. "]+)" .. separator .. "(.+)")
 end
 
 return public[ARGV[1]](unpack(ARGV, 2))

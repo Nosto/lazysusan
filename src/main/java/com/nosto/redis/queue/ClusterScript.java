@@ -36,7 +36,7 @@ public class ClusterScript extends AbstractScript {
         this.jedis = jedis;
         this.numSlots = numSlots;
 
-        source = IOUtils.toByteArray(getClass().getResourceAsStream("/queue.lua"));
+        source = loadScript();
         sha = jedis.scriptLoad(source, new byte[]{0}); // load it on a random host
 
         nextSlot = new IntSupplier() {
