@@ -145,7 +145,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void shutdownWithoutStartup() {
         MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
 
-        connectionManager = new ConnectionManager.Factory()
+        connectionManager = ConnectionManager.factory()
                 .withRedisScript(script)
                 .withQueueHandler("q1", 2)
                     .withMessageHandler(ParentPojo.class, handler)
@@ -161,7 +161,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
     @Test
     public void startupWithoutHandlers() {
-        connectionManager = new ConnectionManager.Factory()
+        connectionManager = ConnectionManager.factory()
                 .withRedisScript(script)
                 .build();
 
@@ -173,7 +173,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     }
 
     private void configureAndStartConnectionManager(Function<ConnectionManager.Factory, ConnectionManager.Factory> factoryConfigurator) {
-        ConnectionManager.Factory connectionManagerFactory = new ConnectionManager.Factory()
+        ConnectionManager.Factory connectionManagerFactory = ConnectionManager.factory()
                 .withRedisScript(script);
 
         connectionManager = factoryConfigurator.apply(connectionManagerFactory)

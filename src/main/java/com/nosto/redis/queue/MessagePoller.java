@@ -30,14 +30,17 @@ import org.apache.logging.log4j.Logger;
 class MessagePoller extends TimerTask {
     private static final Logger logger = LogManager.getLogger(MessagePoller.class);
 
+    private static final int CORE_THREADPOOL_SIZE = 0;
+    private static final long THREAD_KEEP_ALIVE_TIME_MS = 50L;
+
     private final AbstractScript redis;
-    private final Map<String, QueueMessageHandlers> messageHanders;
+    private final Map<String, QueueHandlerConfiguration> messageHanders;
     private final MessageConverter messageConverter;
     private final Map<String, ThreadPoolExecutor> threadPools;
 
     MessagePoller(AbstractScript redis,
                   MessageConverter messageConverter,
-                  Map<String, QueueMessageHandlers> messageHanders) {
+                  Map<String, QueueHandlerConfiguration> messageHanders) {
         this.redis = redis;
         this.messageConverter = messageConverter;
         this.messageHanders = messageHanders;
@@ -48,9 +51,9 @@ class MessagePoller extends TimerTask {
                     queueName, messageHandler.getMaxConcurrentHandlers());
 
             threadPools.put(queueName, new ThreadPoolExecutor(
-                    0,
+                    CORE_THREADPOOL_SIZE,
                     messageHandler.getMaxConcurrentHandlers(),
-                    50L,
+                    THREAD_KEEP_ALIVE_TIME_MS,
                     TimeUnit.MILLISECONDS,
                     new ArrayBlockingQueue<>(messageHandler.getMaxConcurrentHandlers()),
                     new NamedThreadFactory(queueName + "-handler-"),
@@ -85,7 +88,7 @@ class MessagePoller extends TimerTask {
 
     private void handleMessage(ThreadPoolExecutor threadPool,
                                String queueName,
-                               QueueMessageHandlers handlers,
+                               QueueHandlerConfiguration handlers,
                                AbstractScript.TenantMessage message) {
         threadPool.execute(() -> {
             try {

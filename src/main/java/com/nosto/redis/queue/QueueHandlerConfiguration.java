@@ -12,11 +12,11 @@ package com.nosto.redis.queue;
 import java.util.Map;
 import java.util.Optional;
 
-class QueueMessageHandlers {
+class QueueHandlerConfiguration {
     private final int maxConcurrentHandlers;
     private final Map<Class<?>, MessageHandler<?>> messageHandlers;
 
-    QueueMessageHandlers(int maxConcurrentHandlers, Map<Class<?>, MessageHandler<?>> messageHandlers) {
+    QueueHandlerConfiguration(int maxConcurrentHandlers, Map<Class<?>, MessageHandler<?>> messageHandlers) {
         this.maxConcurrentHandlers = maxConcurrentHandlers;
         this.messageHandlers = messageHandlers;
     }

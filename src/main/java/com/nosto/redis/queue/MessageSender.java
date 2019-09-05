@@ -12,5 +12,13 @@ package com.nosto.redis.queue;
 import java.time.Duration;
 
 public interface MessageSender<T> {
+    /**
+     * Enqueue a message.
+     * @param tenant
+     * @param invisiblePeriod
+     * @param message
+     * @return {@code true} if the message was successfully enqueued.
+     * A message may not be enqueued if an existing message has the same key.
+     */
     boolean send(String tenant, Duration invisiblePeriod, T message);
 }

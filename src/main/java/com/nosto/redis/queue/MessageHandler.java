@@ -10,5 +10,11 @@
 package com.nosto.redis.queue;
 
 public interface MessageHandler<T> {
+    /**
+     * Handle a dequeued message.
+     *
+     * @param tenant
+     * @param message
+     */
     void handleMessage(String tenant, T message);
 }

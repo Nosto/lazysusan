@@ -29,7 +29,7 @@ public class ConnectionManager {
     private final AbstractScript redisScript;
     private final Duration pollDuration;
     private final MessageConverter messageConverter;
-    private final Map<String, QueueMessageHandlers> queueMessageHandlers;
+    private final Map<String, QueueHandlerConfiguration> queueMessageHandlers;
 
     private final ReentrantLock startUpShutdownLock;
     private final MessagePoller messagePoller;
@@ -39,7 +39,7 @@ public class ConnectionManager {
     private ConnectionManager(AbstractScript redisScript,
                               Duration pollDuration,
                               MessageConverter messageConverter,
-                              Map<String, QueueMessageHandlers> messageHanders) {
+                              Map<String, QueueHandlerConfiguration> messageHanders) {
         this.redisScript = redisScript;
         this.pollDuration = pollDuration;
         this.messageConverter = messageConverter;
@@ -49,10 +49,21 @@ public class ConnectionManager {
         messagePoller = new MessagePoller(redisScript, messageConverter, queueMessageHandlers);
     }
 
+    /**
+     * @param queueName The queue to send messages to.
+     * @param keyFunction The function that provides a unique key for enqueued messages.
+     * @param <T> The type of message that will be enqueued.
+     * @return
+     */
     public <T> MessageSender<T> createSender(String queueName, Function<T, String> keyFunction) {
         return new MessageSenderImpl<>(redisScript, queueName, keyFunction, messageConverter);
     }
 
+    /**
+     * Start polling for messages.
+     * @throws IllegalStateException if {@link #start()} was previously called.
+     * @throws IllegalStateException if no queue message handlers have been configured.
+     */
     public void start() {
         startUpShutdownLock.lock();
         try {
@@ -71,10 +82,21 @@ public class ConnectionManager {
         }
     }
 
+    /**
+     * Stop polling for messages.
+     * @param timeout The amount of time to wait for polling and message handling to stop.
+     * @return {@code true} if shut down has completed within {@code timeout}.
+     * @throws IllegalStateException if {@link #start()} was not previously called.
+     */
     public boolean shutdown(Duration timeout) {
         return shutdown(messagePoller -> messagePoller.shutdown(timeout));
     }
 
+    /**
+     * Stop polling for messages and cancel any message handlers that are currently running.
+     * @return A {@link List} of cancelled message handlers for each queue.
+     * @throws IllegalStateException if {@link #start()} was not previously called.
+     */
     public Map<String, List<Runnable>> shutdownNow() {
         return shutdown(MessagePoller::shutdownNow);
     }
@@ -94,16 +116,32 @@ public class ConnectionManager {
         }
     }
 
+    /**
+     * @return true if Redis is being polled or if any dequeued messages are being handled.
+     */
     public boolean isRunning() {
         return timer != null && messagePoller.isRunning();
+    }
+
+    /**
+     * @return A new {@link Factory} for creating a new instance of {@link ConnectionManager}.
+     */
+    public static Factory factory() {
+        return new Factory();
     }
 
     public static class Factory {
         private AbstractScript redisScript;
         private Duration pollDuration = Duration.ofMillis(100);
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
-        private Map<String, QueueMessageHandlers> messageHandlers = new HashMap<>();
+        private Map<String, QueueHandlerConfiguration> queueHandlerConfigurations = new HashMap<>();
 
+        private Factory() {
+        }
+
+        /**
+         * Connect to a single Redis instance.
+         */
         public Factory withRedisClient(BinaryScriptingCommands redisClient) {
             Objects.requireNonNull(redisClient);
 
@@ -114,6 +152,9 @@ public class ConnectionManager {
             }
         }
 
+        /**
+         * Connect to a Redis cluster.
+         */
         public Factory withRedisClient(BinaryJedisCluster rediClusterClient, int numberSlots) {
             Objects.requireNonNull(rediClusterClient);
 
@@ -133,18 +174,29 @@ public class ConnectionManager {
             return this;
         }
 
+        /**
+         * The interval to wait between polling Redis for new messages.
+         * Default value is 100 milliseconds.
+         */
         public Factory withPollDuration(Duration pollDuration) {
             this.pollDuration = Objects.requireNonNull(pollDuration);
             return this;
         }
 
+        /**
+         * Determine how messages are serialised to Redis and deserialised from Redis.
+         * Default value is an instance of {@link PolymorphicJacksonMessageConverter}.
+         */
         public Factory withMessageConverter(MessageConverter messageConverter) {
             this.messageConverter = Objects.requireNonNull(messageConverter);
             return this;
         }
 
-        public QueueHandlerFactory withQueueHandler(String queueName, int maxConcurrentHandlers) {
-            return new QueueHandlerFactory(this, queueName, maxConcurrentHandlers);
+        /**
+         * Add a new configuration for handling queue messages.
+         */
+        public QueueHandlerConfigurationFactory withQueueHandler(String queueName, int maxConcurrentHandlers) {
+            return new QueueHandlerConfigurationFactory(this, queueName, maxConcurrentHandlers);
         }
 
         private Factory withMessageHandler(String queueName,
@@ -156,26 +208,26 @@ public class ConnectionManager {
                 throw new IllegalArgumentException("Message handlers already added for queue " + queueName);
             }
 
-            this.messageHandlers.put(queueName, new QueueMessageHandlers(maxConcurrentHandlers, messageHandlers));
+            this.queueHandlerConfigurations.put(queueName, new QueueHandlerConfiguration(maxConcurrentHandlers, messageHandlers));
             return this;
         }
 
         public ConnectionManager build() {
             Objects.requireNonNull(redisScript, "Redis client was not configured.");
 
-            return new ConnectionManager(redisScript, pollDuration, messageConverter, messageHandlers);
+            return new ConnectionManager(redisScript, pollDuration, messageConverter, queueHandlerConfigurations);
         }
     }
 
-    public static class QueueHandlerFactory {
+    public static class QueueHandlerConfigurationFactory {
         private final Factory connectionManagerFactory;
         private final String queueName;
         private final int maxConcurrentHandlers;
         private final Map<Class<?>, MessageHandler<?>> messageHandlers;
 
-        private QueueHandlerFactory(Factory connectionManagerFactory,
-                                    String queueName,
-                                    int maxConcurrentHandlers) {
+        private QueueHandlerConfigurationFactory(Factory connectionManagerFactory,
+                                                 String queueName,
+                                                 int maxConcurrentHandlers) {
             this.connectionManagerFactory = connectionManagerFactory;
 
             this.queueName = Objects.requireNonNull(queueName)
@@ -191,7 +243,10 @@ public class ConnectionManager {
             this.messageHandlers = new HashMap<>();
         }
 
-        public <T> QueueHandlerFactory withMessageHandler(Class<T> messageClass, MessageHandler<T> messageHandler) {
+        /**
+         * Add a new {@link MessageHandler} for this queue.
+         */
+        public <T> QueueHandlerConfigurationFactory withMessageHandler(Class<T> messageClass, MessageHandler<T> messageHandler) {
             messageHandlers.put(messageClass, messageHandler);
             return this;
         }
