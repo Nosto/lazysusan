@@ -46,7 +46,7 @@ public class ConnectionManager {
         this.pollPeriod = pollPeriod;
         this.messageHandlers = messageHanders;
 
-        this.queuePollerThreadPool = new ScheduledThreadPoolExecutor(0);
+        this.queuePollerThreadPool = new ScheduledThreadPoolExecutor(messageHanders.size());
         this.startUpShutdownLock = new ReentrantLock();
     }
 

@@ -49,9 +49,7 @@ class QueuePoller implements Runnable {
     }
 
     private void poll() {
-        Instant now = Instant.now();
-
-        List<AbstractScript.TenantMessage> messages = redis.dequeue(now, queueName, dequeueSize);
+        List<AbstractScript.TenantMessage> messages = redis.dequeue(Instant.now(), queueName, dequeueSize);
         for (AbstractScript.TenantMessage message : messages) {
             logger.debug("Received message for tenent {} and key {}",
                     message.getTenant(), message.getKey());
