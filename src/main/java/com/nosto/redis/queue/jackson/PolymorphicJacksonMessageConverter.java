@@ -10,7 +10,6 @@
 package com.nosto.redis.queue.jackson;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,7 +39,7 @@ public class PolymorphicJacksonMessageConverter implements MessageConverter {
     @Override
     public Object deserialize(byte[] messagePayload) {
         try {
-            return objectMapper.readValue(new String(messagePayload, StandardCharsets.UTF_8), Object.class);
+            return objectMapper.readValue(messagePayload, Object.class);
         } catch (IOException e) {
             throw new RuntimeException("Unable to deserialize payload.", e);
         }
