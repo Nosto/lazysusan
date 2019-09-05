@@ -24,7 +24,7 @@ public class SingleNodeScript extends AbstractScript {
 
     public SingleNodeScript(BinaryScriptingCommands jedis) throws IOException {
         this.jedis = jedis;
-        sha = jedis.scriptLoad(IOUtils.toByteArray(getClass().getResourceAsStream("/queue.lua")));
+        sha = jedis.scriptLoad(loadScript());
     }
 
     @Override

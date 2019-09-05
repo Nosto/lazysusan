@@ -9,7 +9,9 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -19,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public abstract class AbstractScriptTest {
     private final AbstractScript script;
@@ -93,6 +95,18 @@ public abstract class AbstractScriptTest {
 
         assertTrue(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
         assertFalse(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void enqueueWithInvalidKey() {
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", new AbstractScript.TenantMessage("t1", "foo:", "bar".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    public void enqueueJson() {
+        String payload = "{\"key\":\"bar\"}";
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", new AbstractScript.TenantMessage("t1", "foo", payload.getBytes(StandardCharsets.UTF_8)));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", payload);
     }
 
     private void dequeueAndAssert(Instant now, String queue, String... expected) {

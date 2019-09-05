@@ -9,16 +9,25 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.commons.io.IOUtils;
 
 abstract class AbstractScript {
     /**
      * Lua return true gets mapped to 1L
      */
     private static final Long TRUE_RESPONSE = 1L;
+
+    protected static final String KEY_PAYLOAD_SEPARATOR = ":";
 
     /**
      * Adds a message to a queue.
@@ -28,8 +37,13 @@ abstract class AbstractScript {
      * @param queue The name of the queue.
      * @param tenantMessage The message to be added.
      * @return true if the message was added, false if it was a duplicate
+     * @throws IllegalArgumentException if {@link TenantMessage#getKey()} contains {@link AbstractScript#KEY_PAYLOAD_SEPARATOR}
      */
     public boolean enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
+        if (tenantMessage.key.contains(KEY_PAYLOAD_SEPARATOR)) {
+            throw new IllegalArgumentException("Key contains " + KEY_PAYLOAD_SEPARATOR);
+        }
+
         return TRUE_RESPONSE.equals(call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
@@ -65,6 +79,12 @@ abstract class AbstractScript {
      */
     public void ack(String queue, String tenant, String key) {
         call(Function.ACK, slot(tenant), bytes(queue), bytes(tenant), bytes(key));
+    }
+
+    protected byte[] loadScript() throws IOException {
+        return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
+                .replace("KEY_PAYLOAD_SEPARATOR", KEY_PAYLOAD_SEPARATOR)
+                .getBytes(StandardCharsets.UTF_8);
     }
 
     Object call(Function function, byte[] key, byte[]... args) {
