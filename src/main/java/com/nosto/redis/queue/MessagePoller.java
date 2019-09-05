@@ -36,7 +36,7 @@ class MessagePoller {
     private static final long THREAD_KEEP_ALIVE_TIME_MS = 50L;
 
     private final AbstractScript redis;
-    private final Duration pollDuration;
+    private final Duration pollPeriod;
     private final MessageConverter messageConverter;
     private final Map<String, QueueHandlerConfiguration> messageHanders;
 
@@ -45,11 +45,11 @@ class MessagePoller {
     private final ScheduledExecutorService scheduledExecutorService;
 
     MessagePoller(AbstractScript redis,
-                  Duration pollDuration,
+                  Duration pollPeriod,
                   MessageConverter messageConverter,
                   Map<String, QueueHandlerConfiguration> messageHanders) {
         this.redis = redis;
-        this.pollDuration = pollDuration;
+        this.pollPeriod = pollPeriod;
         this.messageConverter = messageConverter;
         this.messageHanders = messageHanders;
 
@@ -84,8 +84,8 @@ class MessagePoller {
             });
 
             scheduledExecutorService.scheduleAtFixedRate(this::poll,
-                    pollDuration.toMillis(),
-                    pollDuration.toMillis(),
+                    pollPeriod.toMillis(),
+                    pollPeriod.toMillis(),
                     TimeUnit.MILLISECONDS);
         } finally {
             startUpShutdownLock.unlock();

@@ -31,14 +31,14 @@ public class ConnectionManager {
     private final MessagePoller messagePoller;
 
     private ConnectionManager(AbstractScript redisScript,
-                              Duration pollDuration,
+                              Duration pollPeriod,
                               MessageConverter messageConverter,
                               Map<String, QueueHandlerConfiguration> messageHanders) {
         this.redisScript = redisScript;
         this.messageConverter = messageConverter;
         this.queueMessageHandlers = messageHanders;
 
-        messagePoller = new MessagePoller(redisScript, pollDuration, messageConverter, queueMessageHandlers);
+        messagePoller = new MessagePoller(redisScript, pollPeriod, messageConverter, queueMessageHandlers);
     }
 
     /**
@@ -98,7 +98,7 @@ public class ConnectionManager {
 
     public static class Factory {
         private AbstractScript redisScript;
-        private Duration pollDuration = Duration.ofMillis(100);
+        private Duration pollPeriod = Duration.ofMillis(100);
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
         private Map<String, QueueHandlerConfiguration> queueHandlerConfigurations = new HashMap<>();
 
@@ -144,8 +144,8 @@ public class ConnectionManager {
          * The interval to wait between polling Redis for new messages.
          * Default value is 100 milliseconds.
          */
-        public Factory withPollDuration(Duration pollDuration) {
-            this.pollDuration = Objects.requireNonNull(pollDuration);
+        public Factory withPollPeriod(Duration pollPeriod) {
+            this.pollPeriod = Objects.requireNonNull(pollPeriod);
             return this;
         }
 
@@ -181,7 +181,7 @@ public class ConnectionManager {
         public ConnectionManager build() {
             Objects.requireNonNull(redisScript, "Redis client was not configured.");
 
-            return new ConnectionManager(redisScript, pollDuration, messageConverter, queueHandlerConfigurations);
+            return new ConnectionManager(redisScript, pollPeriod, messageConverter, queueHandlerConfigurations);
         }
     }
 
