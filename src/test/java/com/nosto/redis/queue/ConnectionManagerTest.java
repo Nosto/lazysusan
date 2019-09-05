@@ -23,9 +23,9 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
@@ -142,31 +142,13 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     }
 
     @Test
-    public void shutdownWithoutStartup() {
-        MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
-
-        connectionManager = ConnectionManager.factory()
-                .withRedisScript(script)
-                .withQueueHandler("q1", 2)
-                    .withMessageHandler(ParentPojo.class, handler)
-                    .build()
-                .build();
-
-        try {
-            connectionManager.shutdown(SHUTDOWN_DURATION);
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException e) {
-        }
-    }
-
-    @Test
     public void startupWithoutHandlers() {
         connectionManager = ConnectionManager.factory()
                 .withRedisScript(script)
                 .build();
 
         try {
-            connectionManager.shutdown(SHUTDOWN_DURATION);
+            connectionManager.start();
             fail("Expected IllegalStateException");
         } catch (IllegalStateException e) {
         }
@@ -196,6 +178,6 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         verify(mockMessageHandler, timeout(SHUTDOWN_DURATION.toMillis()).times(expectedMessages.length))
                 .handleMessage(eq(expectedTenant), messageCaptor.capture());
 
-        assertEquals(Set.of(expectedMessages), new HashSet<>(messageCaptor.getAllValues()));
+        assertEquals(new HashSet<>(Arrays.asList(expectedMessages)), new HashSet<>(messageCaptor.getAllValues()));
     }
 }

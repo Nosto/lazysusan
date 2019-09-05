@@ -16,8 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import com.nosto.redis.queue.jackson.PolymorphicJacksonMessageConverter;
@@ -27,26 +25,20 @@ import redis.clients.jedis.BinaryScriptingCommands;
 
 public class ConnectionManager {
     private final AbstractScript redisScript;
-    private final Duration pollDuration;
     private final MessageConverter messageConverter;
     private final Map<String, QueueHandlerConfiguration> queueMessageHandlers;
 
-    private final ReentrantLock startUpShutdownLock;
     private final MessagePoller messagePoller;
-
-    private Timer timer;
 
     private ConnectionManager(AbstractScript redisScript,
                               Duration pollDuration,
                               MessageConverter messageConverter,
                               Map<String, QueueHandlerConfiguration> messageHanders) {
         this.redisScript = redisScript;
-        this.pollDuration = pollDuration;
         this.messageConverter = messageConverter;
         this.queueMessageHandlers = messageHanders;
 
-        startUpShutdownLock = new ReentrantLock();
-        messagePoller = new MessagePoller(redisScript, messageConverter, queueMessageHandlers);
+        messagePoller = new MessagePoller(redisScript, pollDuration, messageConverter, queueMessageHandlers);
     }
 
     /**
@@ -65,21 +57,7 @@ public class ConnectionManager {
      * @throws IllegalStateException if no queue message handlers have been configured.
      */
     public void start() {
-        startUpShutdownLock.lock();
-        try {
-            if (isRunning()) {
-                throw new IllegalStateException("ConnectionManager has already started.");
-            }
-
-            if (queueMessageHandlers.isEmpty()) {
-                throw new IllegalStateException("No message handlers have been configured.");
-            }
-
-            timer = new Timer();
-            timer.scheduleAtFixedRate(messagePoller, pollDuration.toMillis(), pollDuration.toMillis());
-        } finally {
-            startUpShutdownLock.unlock();
-        }
+        messagePoller.start();
     }
 
     /**
@@ -95,32 +73,20 @@ public class ConnectionManager {
     /**
      * Stop polling for messages and cancel any message handlers that are currently running.
      * @return A {@link List} of cancelled message handlers for each queue.
-     * @throws IllegalStateException if {@link #start()} was not previously called.
      */
     public Map<String, List<Runnable>> shutdownNow() {
         return shutdown(MessagePoller::shutdownNow);
     }
 
     private <T> T shutdown(Function<MessagePoller, T> shutdownFunction) {
-        startUpShutdownLock.lock();
-        try {
-            if (timer == null) {
-                throw new IllegalStateException("ConnectionManager is not running.");
-            }
-
-            timer.cancel();
-
-            return shutdownFunction.apply(messagePoller);
-        } finally {
-            startUpShutdownLock.unlock();
-        }
+        return shutdownFunction.apply(messagePoller);
     }
 
     /**
      * @return true if Redis is being polled or if any dequeued messages are being handled.
      */
     public boolean isRunning() {
-        return timer != null && messagePoller.isRunning();
+        return messagePoller.isRunning();
     }
 
     /**
