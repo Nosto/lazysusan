@@ -34,7 +34,7 @@ import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.BinaryScriptingCommands;
 
 /**
- * A class for enqeueing and for polling for messages.
+ * A class for enqueuing and for polling for messages.
  */
 public class ConnectionManager {
     private static final Logger logger = LogManager.getLogger(ConnectionManager.class);
