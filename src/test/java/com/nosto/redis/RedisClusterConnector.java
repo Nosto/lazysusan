@@ -16,7 +16,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.exceptions.JedisDataException;
 
-public class RedisClusterConnector extends ExternalResource {
+public class RedisClusterConnector extends ExternalResource implements RedisConnector{
     private final JedisCluster jedisCluster;
 
     public RedisClusterConnector() {
@@ -28,6 +28,7 @@ public class RedisClusterConnector extends ExternalResource {
         return jedisCluster;
     }
 
+    @Override
     public void flush() {
         jedisCluster.getClusterNodes().forEach((key, jedisPool) -> {
             try (Jedis j = jedisPool.getResource()) {
@@ -36,10 +37,5 @@ public class RedisClusterConnector extends ExternalResource {
                 // redis.clients.jedis.exceptions.JedisDataException: READONLY You can't write against a read only slave.
             }
         });
-    }
-
-    @Override
-    protected void before() throws Throwable {
-        flush();
     }
 }
