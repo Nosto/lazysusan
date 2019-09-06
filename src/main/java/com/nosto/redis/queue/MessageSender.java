@@ -17,8 +17,8 @@ public interface MessageSender<T> {
      * @param tenant
      * @param invisiblePeriod
      * @param message
-     * @return {@code true} if the message was successfully enqueued.
-     * A message may not be enqueued if an existing message has the same key.
+     * @return {@code true} if the message was successfully enqueued.<br>
+     * {@code false} if an existing message has the same key.
      */
     boolean send(String tenant, Duration invisiblePeriod, T message);
 }

@@ -144,7 +144,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     @Test
     public void startupWithoutHandlers() {
         connectionManager = ConnectionManager.factory()
-                .withRedisScript(script)
+                .withScript(script)
                 .build();
 
         try {
@@ -188,10 +188,12 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
     private void configureAndStartConnectionManager(Function<ConnectionManager.Factory, ConnectionManager.Factory> factoryConfigurator) {
         ConnectionManager.Factory connectionManagerFactory = ConnectionManager.factory()
-                .withRedisScript(script);
+                .withScript(script);
 
         connectionManager = factoryConfigurator.apply(connectionManagerFactory)
                 .build();
+
+        assertFalse(connectionManager.isRunning());
 
         connectionManager.start();
 

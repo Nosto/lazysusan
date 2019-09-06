@@ -20,14 +20,23 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.nosto.redis.queue.jackson.PolymorphicJacksonMessageConverter;
 
 import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.BinaryScriptingCommands;
 
+/**
+ * A class for enqeueing and for polling for messages.
+ */
 public class ConnectionManager {
-    private final AbstractScript redisScript;
+    private static final Logger logger = LogManager.getLogger(ConnectionManager.class);
+
+    private final AbstractScript script;
     private final MessageConverter messageConverter;
     private final int dequeueSize;
     private final Duration pollPeriod;
@@ -35,12 +44,12 @@ public class ConnectionManager {
     private final ScheduledThreadPoolExecutor queuePollerThreadPool;
     private final ReentrantLock startUpShutdownLock;
 
-    private ConnectionManager(AbstractScript redisScript,
+    private ConnectionManager(AbstractScript script,
                               MessageConverter messageConverter,
                               Duration pollPeriod,
                               int dequeueSize,
                               Map<String, Map<Class<?>, MessageHandler<?>>> messageHanders) {
-        this.redisScript = redisScript;
+        this.script = script;
         this.messageConverter = messageConverter;
         this.dequeueSize = dequeueSize;
         this.pollPeriod = pollPeriod;
@@ -57,7 +66,7 @@ public class ConnectionManager {
      * @return
      */
     public <T> MessageSender<T> createSender(String queueName, Function<T, String> keyFunction) {
-        return new MessageSenderImpl<>(redisScript, queueName, keyFunction, messageConverter);
+        return new MessageSenderImpl<>(script, queueName, keyFunction, messageConverter);
     }
 
     /**
@@ -81,15 +90,20 @@ public class ConnectionManager {
                 throw new IllegalStateException("Already shut down.");
             }
 
-            messageHandlers.forEach((queueName, queueMessageHandlers) -> {
-                QueuePoller queuePoller =
-                        new QueuePoller(redisScript, messageConverter, queueName, dequeueSize, queueMessageHandlers);
+            long initialDelay = pollPeriod.toMillis();
+            for (Map.Entry<String, Map<Class<?>, MessageHandler<?>>> entry : messageHandlers.entrySet()) {
+                String queueName = entry.getKey();
+                Map<Class<?>, MessageHandler<?>> queueMessageHandlers = entry.getValue();
 
-                queuePollerThreadPool.scheduleAtFixedRate(queuePoller,
-                        pollPeriod.toMillis(),
-                        pollPeriod.toMillis(),
-                        TimeUnit.MILLISECONDS);
-            });
+                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, queueMessageHandlers);
+
+                logger.debug("Scheduling poller for queue '{}' with period {}ms and initial delay {}ms",
+                        queueName, pollPeriod.toMillis(), initialDelay);
+
+                queuePollerThreadPool.scheduleAtFixedRate(queuePoller, initialDelay, pollPeriod.toMillis(), TimeUnit.MILLISECONDS);
+
+                initialDelay += pollPeriod.toMillis() / messageHandlers.size();
+            }
         } finally {
             startUpShutdownLock.unlock();
         }
@@ -112,7 +126,7 @@ public class ConnectionManager {
 
     /**
      * Stop polling for messages and cancel any message handlers that are currently running.
-     * @return A {@link List} of cancelled message handlers for each queue.
+     * @return A {@link List} of cancelled tasks.
      */
     public List<Runnable> shutdownNow() {
         startUpShutdownLock.lock();
@@ -124,7 +138,7 @@ public class ConnectionManager {
     }
 
     /**
-     * @return true if Redis is being polled or if any dequeued messages are being handled.
+     * @return {@code true} if any queue is being polled.
      */
     public boolean isRunning() {
         return !queuePollerThreadPool.isShutdown() && queuePollerThreadPool.getTaskCount() > 0L;
@@ -138,7 +152,7 @@ public class ConnectionManager {
     }
 
     public static class Factory {
-        private AbstractScript redisScript;
+        private AbstractScript script;
         private Duration pollPeriod = Duration.ofMillis(100);
         private int dequeueSize = 100;
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
@@ -148,22 +162,22 @@ public class ConnectionManager {
         }
 
         /**
-         * Connect to a single Redis instance.
+         * Connect to a single instance.
          */
-        public Factory withRedisClient(BinaryScriptingCommands redisClient) {
+        public Factory withClient(BinaryScriptingCommands redisClient) {
             Objects.requireNonNull(redisClient);
 
             try {
-                return withRedisScript(new SingleNodeScript(redisClient));
+                return withScript(new SingleNodeScript(redisClient));
             } catch (IOException e) {
-                throw new IllegalStateException("Cannot connect to redis.", e);
+                throw new IllegalStateException("Cannot connect.", e);
             }
         }
 
         /**
-         * Connect to a Redis cluster.
+         * Connect to a cluster.
          */
-        public Factory withRedisClient(BinaryJedisCluster rediClusterClient, int numberSlots) {
+        public Factory withClient(BinaryJedisCluster rediClusterClient, int numberSlots) {
             Objects.requireNonNull(rediClusterClient);
 
             if (numberSlots <= 0) {
@@ -171,19 +185,19 @@ public class ConnectionManager {
             }
 
             try {
-                return withRedisScript(new ClusterScript(rediClusterClient, numberSlots));
+                return withScript(new ClusterScript(rediClusterClient, numberSlots));
             } catch (IOException e) {
-                throw new IllegalStateException("Cannot connect to redis.", e);
+                throw new IllegalStateException("Cannot connect.", e);
             }
         }
 
-        Factory withRedisScript(AbstractScript redisScript) {
-            this.redisScript = Objects.requireNonNull(redisScript);
+        Factory withScript(AbstractScript script) {
+            this.script = Objects.requireNonNull(script);
             return this;
         }
 
         /**
-         * The interval to wait between polling Redis for new messages.
+         * The interval to wait between polling for messages.
          * Default value is 100 milliseconds.
          */
         public Factory withPollPeriod(Duration pollPeriod) {
@@ -191,6 +205,9 @@ public class ConnectionManager {
             return this;
         }
 
+        /**
+         * @param dequeueSize The amount of messages to attempt to dequeue in each poll.
+         */
         public Factory withDequeueSize(int dequeueSize) {
             if (dequeueSize <= 0) {
                 throw new IllegalArgumentException("dequeueSize must be positive: " + dequeueSize);
@@ -201,7 +218,7 @@ public class ConnectionManager {
         }
 
         /**
-         * Determine how messages are serialised to Redis and deserialised from Redis.
+         * Determine how messages are serialised and deserialised.
          * Default value is an instance of {@link PolymorphicJacksonMessageConverter}.
          */
         public Factory withMessageConverter(MessageConverter messageConverter) {
@@ -210,7 +227,7 @@ public class ConnectionManager {
         }
 
         /**
-         * Add a new configuration for handling queue messages.
+         * Add a new configuration for handling dequeued messages.
          */
         public QueueHandlerConfigurationFactory withQueueHandler(String queueName) {
             return new QueueHandlerConfigurationFactory(this, queueName);
@@ -226,9 +243,9 @@ public class ConnectionManager {
         }
 
         public ConnectionManager build() {
-            Objects.requireNonNull(redisScript, "Redis client was not configured.");
+            Objects.requireNonNull(script, "Redis client was not configured.");
 
-            return new ConnectionManager(redisScript, messageConverter, pollPeriod, dequeueSize, messageHandlers);
+            return new ConnectionManager(script, messageConverter, pollPeriod, dequeueSize, messageHandlers);
         }
     }
 
@@ -248,7 +265,7 @@ public class ConnectionManager {
         }
 
         /**
-         * Add a new {@link MessageHandler} for this queue.
+         * Add a new {@link MessageHandler} for dequeued messages.
          */
         public <T> QueueHandlerConfigurationFactory withMessageHandler(Class<T> messageClass, MessageHandler<T> messageHandler) {
             messageHandlers.put(messageClass, messageHandler);

@@ -25,11 +25,11 @@ class MessageSenderImpl<T> implements MessageSender<T> {
     private final Function<T, String> keyFunction;
     private final MessageConverter messageConverter;
 
-    MessageSenderImpl(AbstractScript redis,
+    MessageSenderImpl(AbstractScript script,
                              String queueName,
                              Function<T, String> keyFunction,
                              MessageConverter messageConverter) {
-        this.redis = redis;
+        this.redis = script;
         this.queueName = queueName;
         this.keyFunction = keyFunction;
         this.messageConverter = messageConverter;
@@ -46,7 +46,7 @@ class MessageSenderImpl<T> implements MessageSender<T> {
         }
 
         AbstractScript.TenantMessage tenantMessage = new AbstractScript.TenantMessage(tenant, key, messagePayload);
-        logger.debug("Enqueueing message tenant={}, key={}",
+        logger.debug("Enqueueing message tenant for '{}' and key '{}'",
                 tenant, key);
         return redis.enqueue(Instant.now(), invisiblePeriod, queueName, tenantMessage);
     }
