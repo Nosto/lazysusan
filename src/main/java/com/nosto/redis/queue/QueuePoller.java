@@ -62,6 +62,7 @@ class QueuePoller implements Runnable {
                 }
             } catch (InterruptedException e) {
                 logger.warn("Got interrupted while sleeping. Stopping.", e);
+                stop = true;
             } catch (Exception e) {
                 logger.error("Error while polling. Continuing", e);
             }
