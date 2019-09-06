@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,14 +41,15 @@ class QueuePoller implements Runnable {
                 String queueName,
                 int dequeueSize,
                 Duration pollPeriod,
-                Map<Class<?>, MessageHandler<?>> messageHandlers,
+                List<MessageHandler<?>> messageHandlers,
                 Random random) {
         this.redis = redis;
         this.messageConverter = messageConverter;
         this.queueName = queueName;
         this.dequeueSize = dequeueSize;
         this.pollPeriod = pollPeriod;
-        this.messageHandlers = messageHandlers;
+        this.messageHandlers = messageHandlers.stream()
+                .collect(Collectors.toMap(MessageHandler::getMessageClass, Function.identity()));
         this.random = random;
     }
 

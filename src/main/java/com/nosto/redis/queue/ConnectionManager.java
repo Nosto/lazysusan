@@ -13,17 +13,20 @@ package com.nosto.redis.queue;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,17 +46,17 @@ public class ConnectionManager {
     private final MessageConverter messageConverter;
     private final int dequeueSize;
     private final Duration pollPeriod;
-    private final Map<String, Map<Class<?>, MessageHandler<?>>> messageHandlers;
+    private final Map<String, List<MessageHandler<?>>> messageHandlers;
     private List<QueuePoller> runningPollers;
     private final ReentrantLock startUpShutdownLock;
 
-    private ThreadPoolExecutor queuePollerThreadPool;
+    private ExecutorService queuePollerThreadPool;
 
     private ConnectionManager(AbstractScript script,
                               MessageConverter messageConverter,
                               Duration pollPeriod,
                               int dequeueSize,
-                              Map<String, Map<Class<?>, MessageHandler<?>>> messageHanders) {
+                              Map<String, List<MessageHandler<?>>> messageHanders) {
         this.script = script;
         this.messageConverter = messageConverter;
         this.dequeueSize = dequeueSize;
@@ -95,13 +98,12 @@ public class ConnectionManager {
                 throw new IllegalStateException("Already shut down.");
             }
 
-            this.queuePollerThreadPool = new ThreadPoolExecutor(0, messageHandlers.size(), pollPeriod.toMillis(),
-                    TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(messageHandlers.size()), new ThreadPoolExecutor.AbortPolicy());
+            this.queuePollerThreadPool = Executors.newFixedThreadPool(messageHandlers.size());
 
             Random random = new Random();
-            for (Map.Entry<String, Map<Class<?>, MessageHandler<?>>> entry : messageHandlers.entrySet()) {
+            for (Map.Entry<String, List<MessageHandler<?>>> entry : messageHandlers.entrySet()) {
                 String queueName = entry.getKey();
-                Map<Class<?>, MessageHandler<?>> queueMessageHandlers = entry.getValue();
+                List<MessageHandler<?>> queueMessageHandlers = entry.getValue();
 
                 QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, pollPeriod,
                         queueMessageHandlers, random);
@@ -173,7 +175,7 @@ public class ConnectionManager {
         private Duration pollPeriod = Duration.ofMillis(100);
         private int dequeueSize = 100;
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
-        private Map<String, Map<Class<?>, MessageHandler<?>>> messageHandlers = new HashMap<>();
+        private Map<String, List<MessageHandler<?>>> messageHandlers = new HashMap<>();
 
         private Factory() {
         }
@@ -244,18 +246,34 @@ public class ConnectionManager {
         }
 
         /**
-         * Add a new configuration for handling dequeued messages.
+         * Set the message handlers for a queue.
+         * @throws NullPointerException if {@code queueName} is {@code null}.
+         * @throws IllegalArgumentException if {@code queueName} was already set.
+         * @throws IllegalStateException if no message handlers are set.
+         * @throws IllegalArgumentException if more than one {@link MessageHandler} returns the same class
+         * for {@link MessageHandler#getMessageClass()}
+         *
          */
-        public QueueHandlerConfigurationFactory withQueueHandler(String queueName) {
-            return new QueueHandlerConfigurationFactory(this, queueName);
-        }
+        public Factory withMessageHandlers(String queueName, MessageHandler<?>... messageHandlers) {
+            queueName = Objects.requireNonNull(queueName).trim();
 
-        private Factory withMessageHandler(String queueName, Map<Class<?>, MessageHandler<?>> messageHandlers) {
-            if (messageHandlers.containsKey(queueName)) {
-                throw new IllegalArgumentException("Message handlers already added for queue " + queueName);
+            if (this.messageHandlers.containsKey(queueName)) {
+                throw new IllegalArgumentException("Message handlers have already been set for " + queueName);
             }
 
-            this.messageHandlers.put(queueName, messageHandlers);
+            if (messageHandlers.length == 0) {
+                throw new IllegalArgumentException("No message handlers defined.");
+            }
+
+            Stream.of(messageHandlers)
+                    .collect(Collectors.groupingBy(MessageHandler::getMessageClass))
+                    .forEach((messageClass, handlers) -> {
+                        if (handlers.size() > 1) {
+                            throw new IllegalArgumentException("More than one MessageHandler handling the same class: " + messageClass);
+                        }
+                    });
+
+            this.messageHandlers.put(queueName, Arrays.asList(messageHandlers));
             return this;
         }
 
@@ -263,38 +281,6 @@ public class ConnectionManager {
             Objects.requireNonNull(script, "Redis client was not configured.");
 
             return new ConnectionManager(script, messageConverter, pollPeriod, dequeueSize, messageHandlers);
-        }
-    }
-
-    public static class QueueHandlerConfigurationFactory {
-        private final Factory connectionManagerFactory;
-        private final String queueName;
-        private final Map<Class<?>, MessageHandler<?>> messageHandlers;
-
-        private QueueHandlerConfigurationFactory(Factory connectionManagerFactory, String queueName) {
-            this.connectionManagerFactory = connectionManagerFactory;
-
-            this.queueName = Objects.requireNonNull(queueName)
-                    .trim()
-                    .toLowerCase();
-
-            this.messageHandlers = new HashMap<>();
-        }
-
-        /**
-         * Add a new {@link MessageHandler} for dequeued messages.
-         */
-        public <T> QueueHandlerConfigurationFactory withMessageHandler(Class<T> messageClass, MessageHandler<T> messageHandler) {
-            messageHandlers.put(messageClass, messageHandler);
-            return this;
-        }
-
-        public ConnectionManager.Factory build() {
-            if (messageHandlers.isEmpty()) {
-                throw new IllegalArgumentException("No message handlers were configured.");
-            }
-
-            return connectionManagerFactory.withMessageHandler(queueName, messageHandlers);
         }
     }
 }

@@ -17,4 +17,6 @@ public interface MessageHandler<T> {
      * @param message
      */
     void handleMessage(String tenant, T message);
+
+    Class<T> getMessageClass();
 }
