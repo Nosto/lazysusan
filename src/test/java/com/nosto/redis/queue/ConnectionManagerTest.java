@@ -153,7 +153,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     }
 
     @Test
-    public void startupTwice() {
+    public void startupTwice() throws Exception {
         MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class);
 
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
@@ -163,6 +163,8 @@ public class ConnectionManagerTest extends AbstractScriptTest {
             fail("Expected IllegalStateException");
         } catch (IllegalStateException e) {
         }
+
+        stopConnectionManager();
     }
 
     @Test
