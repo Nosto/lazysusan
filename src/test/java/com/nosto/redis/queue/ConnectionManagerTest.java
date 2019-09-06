@@ -186,6 +186,18 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         }
     }
 
+    @Test
+    public void shutdownNow() {
+        MessageHandler<ParentPojo> handler = mock(MessageHandler.class);
+
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1")
+                .withMessageHandler(ParentPojo.class, handler)
+                .build());
+
+        connectionManager.shutdownNow();
+        assertFalse(connectionManager.isRunning());
+    }
+
     private void configureAndStartConnectionManager(Function<ConnectionManager.Factory, ConnectionManager.Factory> factoryConfigurator) {
         ConnectionManager.Factory connectionManagerFactory = ConnectionManager.factory()
                 .withScript(script);

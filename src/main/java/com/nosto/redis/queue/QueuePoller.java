@@ -9,10 +9,13 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,39 +23,57 @@ import org.apache.logging.log4j.Logger;
 class QueuePoller implements Runnable {
     private static final Logger logger = LogManager.getLogger(QueuePoller.class);
 
-    private final AbstractScript redis;
+    private static final int RANDOM_BOUND = 50;
 
+    private final AbstractScript redis;
     private final MessageConverter messageConverter;
     private final String queueName;
     private final int dequeueSize;
+    private final Duration pollPeriod;
     private final Map<Class<?>, MessageHandler<?>> messageHandlers;
+    private final Random random;
+    private boolean stop;
 
     QueuePoller(AbstractScript redis,
                 MessageConverter messageConverter,
                 String queueName,
                 int dequeueSize,
-                Map<Class<?>, MessageHandler<?>> messageHandlers) {
+                Duration pollPeriod,
+                Map<Class<?>, MessageHandler<?>> messageHandlers,
+                Random random) {
         this.redis = redis;
         this.messageConverter = messageConverter;
         this.queueName = queueName;
         this.dequeueSize = dequeueSize;
+        this.pollPeriod = pollPeriod;
         this.messageHandlers = messageHandlers;
+        this.random = random;
     }
 
     @Override
     public void run() {
-        try {
-            poll();
-        } catch (Exception e) {
-            logger.error("Error while polling.", e);
+        while (!stop) {
+            try {
+                if (poll() == 0) {
+                    long sleepMS = pollPeriod.toMillis() + Math.abs(random.nextInt(RANDOM_BOUND));
+                    logger.debug("Received zero messages in last poll. Sleeping for {}ms.", sleepMS);
+
+                    TimeUnit.MILLISECONDS.sleep(sleepMS);
+                }
+            } catch (InterruptedException e) {
+                logger.warn("Got interrupted while sleeping. Stopping.", e);
+            } catch (Exception e) {
+                logger.error("Error while polling. Continuing", e);
+            }
         }
     }
 
-    public String getQueueName() {
-        return queueName;
+    public void stop() {
+        logger.info("Stopping.");
+        this.stop = true;
     }
 
-    private void poll() {
+    private int poll() {
         List<AbstractScript.TenantMessage> messages = redis.dequeue(Instant.now(), queueName, dequeueSize);
         logger.debug("Dequeued {} messages for queue '{}'", messages.size(), queueName);
 
@@ -70,5 +91,7 @@ class QueuePoller implements Runnable {
 
             redis.ack(queueName, message.getTenant(), message.getKey());
         }
+
+        return messages.size();
     }
 }

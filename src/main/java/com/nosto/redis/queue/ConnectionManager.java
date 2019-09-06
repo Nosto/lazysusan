@@ -12,15 +12,18 @@ package com.nosto.redis.queue;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.Random;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,8 +44,10 @@ public class ConnectionManager {
     private final int dequeueSize;
     private final Duration pollPeriod;
     private final Map<String, Map<Class<?>, MessageHandler<?>>> messageHandlers;
-    private final ScheduledThreadPoolExecutor queuePollerThreadPool;
+    private List<QueuePoller> runningPollers;
     private final ReentrantLock startUpShutdownLock;
+
+    private ThreadPoolExecutor queuePollerThreadPool;
 
     private ConnectionManager(AbstractScript script,
                               MessageConverter messageConverter,
@@ -55,7 +60,7 @@ public class ConnectionManager {
         this.pollPeriod = pollPeriod;
         this.messageHandlers = messageHanders;
 
-        this.queuePollerThreadPool = new ScheduledThreadPoolExecutor(messageHanders.size());
+        this.runningPollers = new ArrayList<>(messageHandlers.size());
         this.startUpShutdownLock = new ReentrantLock();
     }
 
@@ -86,23 +91,25 @@ public class ConnectionManager {
                 throw new IllegalStateException("Already running.");
             }
 
-            if (queuePollerThreadPool.isShutdown()) {
+            if (queuePollerThreadPool != null && queuePollerThreadPool.isShutdown()) {
                 throw new IllegalStateException("Already shut down.");
             }
 
-            long initialDelay = pollPeriod.toMillis();
+            this.queuePollerThreadPool = new ThreadPoolExecutor(0, messageHandlers.size(), pollPeriod.toMillis(),
+                    TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(messageHandlers.size()), new ThreadPoolExecutor.AbortPolicy());
+
+            Random random = new Random();
             for (Map.Entry<String, Map<Class<?>, MessageHandler<?>>> entry : messageHandlers.entrySet()) {
                 String queueName = entry.getKey();
                 Map<Class<?>, MessageHandler<?>> queueMessageHandlers = entry.getValue();
 
-                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, queueMessageHandlers);
+                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, pollPeriod,
+                        queueMessageHandlers, random);
 
-                logger.debug("Scheduling poller for queue '{}' with period {}ms and initial delay {}ms",
-                        queueName, pollPeriod.toMillis(), initialDelay);
+                logger.debug("Scheduling poller for queue '{}'", queueName);
 
-                queuePollerThreadPool.scheduleAtFixedRate(queuePoller, initialDelay, pollPeriod.toMillis(), TimeUnit.MILLISECONDS);
-
-                initialDelay += pollPeriod.toMillis() / messageHandlers.size();
+                queuePollerThreadPool.submit(queuePoller);
+                runningPollers.add(queuePoller);
             }
         } finally {
             startUpShutdownLock.unlock();
@@ -117,7 +124,12 @@ public class ConnectionManager {
     public boolean shutdown(Duration timeout) throws InterruptedException {
         startUpShutdownLock.lock();
         try {
+            if (queuePollerThreadPool == null) {
+                return true;
+            }
+
             queuePollerThreadPool.shutdown();
+            runningPollers.forEach(QueuePoller::stop);
             return queuePollerThreadPool.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } finally {
             startUpShutdownLock.unlock();
@@ -131,6 +143,11 @@ public class ConnectionManager {
     public List<Runnable> shutdownNow() {
         startUpShutdownLock.lock();
         try {
+            if (queuePollerThreadPool == null) {
+                return Collections.emptyList();
+            }
+
+            runningPollers.forEach(QueuePoller::stop);
             return queuePollerThreadPool.shutdownNow();
         } finally {
             startUpShutdownLock.unlock();
@@ -141,7 +158,7 @@ public class ConnectionManager {
      * @return {@code true} if any queue is being polled.
      */
     public boolean isRunning() {
-        return !queuePollerThreadPool.isShutdown() && queuePollerThreadPool.getTaskCount() > 0L;
+        return queuePollerThreadPool != null && !queuePollerThreadPool.isShutdown();
     }
 
     /**
