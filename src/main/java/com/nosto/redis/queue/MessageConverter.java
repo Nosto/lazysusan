@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -10,17 +10,19 @@
 package com.nosto.redis.queue;
 
 /**
- * This is used for serialising messages before enqueuing them and for
- * deserialising dequeued messages so they can be passed to their corresponding {@link MessageHandler}.
+ * This is used for serializing messages before enqueuing them and for
+ * deserializing dequeued messages so they can be passed to their corresponding {@link MessageHandler}.
  */
 public interface MessageConverter {
     /**
      * @param messagePayload The message to be enqueued.
+     * @return The serialized message.
      */
     byte[] serialize(Object messagePayload);
 
     /**
      * @param messagePayload A dequeued message.
+     * @return The deserialized message.
      */
     Object deserialize(byte[] messagePayload);
 }

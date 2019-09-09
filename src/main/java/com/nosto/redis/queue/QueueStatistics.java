@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -15,15 +15,17 @@ import java.util.Map;
 /**
  * Contains all statistics fetched for a queue.
  */
-public class QueueStatistics {
+public final class QueueStatistics {
     private final Map<String, TenantStatistics> tenantStatistics;
 
-    public QueueStatistics(Map<String, TenantStatistics> tenantStatistics) {
+    QueueStatistics(Map<String, TenantStatistics> tenantStatistics) {
         this.tenantStatistics = Collections.unmodifiableMap(tenantStatistics);
     }
 
+    /**
+     * @return {@link TenantStatistics} for each tenant.
+     */
     public Map<String, TenantStatistics> getTenantStatistics() {
         return tenantStatistics;
     }
-
 }

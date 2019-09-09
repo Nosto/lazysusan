@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -18,7 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 class MessageSenderImpl<T> implements MessageSender<T> {
-    private static final Logger logger = LogManager.getLogger(MessageSenderImpl.class);
+    private static final Logger LOGGER = LogManager.getLogger(MessageSenderImpl.class);
 
     private final AbstractScript redis;
     private final String queueName;
@@ -46,7 +46,7 @@ class MessageSenderImpl<T> implements MessageSender<T> {
         }
 
         AbstractScript.TenantMessage tenantMessage = new AbstractScript.TenantMessage(tenant, key, messagePayload);
-        logger.debug("Enqueueing message tenant for '{}' and key '{}'",
+        LOGGER.debug("Enqueueing message tenant for '{}' and key '{}'",
                 tenant, key);
         return redis.enqueue(Instant.now(), invisiblePeriod, queueName, tenantMessage);
     }
