@@ -123,6 +123,9 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertEquals(new TenantStatistics("t1", 0, 5), stats.getTenantStatistics().get("t1"));
         assertEquals(new TenantStatistics("t2", 0, 2), stats.getTenantStatistics().get("t2"));
 
+        stats = script.getQueueStatistics("q2");
+        assertTrue(stats.getTenantStatistics().isEmpty());
+
         // Dequeueing messages makes 1 message invisible per tenant
         List<AbstractScript.TenantMessage> messages = script.dequeue(later, "q1", 100);
         assertEquals(2, messages.size());
@@ -131,6 +134,9 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertEquals(2, stats.getTenantStatistics().size());
         assertEquals(new TenantStatistics("t1", 1, 4), stats.getTenantStatistics().get("t1"));
         assertEquals(new TenantStatistics("t2", 1, 1), stats.getTenantStatistics().get("t2"));
+
+        stats = script.getQueueStatistics("q2");
+        assertTrue(stats.getTenantStatistics().isEmpty());
 
         // Enqueue messages to another queue
         enqueueMessages("q2", "t1", now, 3, later, 4);
