@@ -59,17 +59,28 @@ class ClusterScript extends AbstractScript {
     @Override
     @SuppressWarnings("unchecked")
     public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys) {
-        return unpack(IntStream.range(0, numSlots)
+        return unpackTenantMessage(IntStream.range(0, numSlots)
+                .map(x -> nextSlot.getAsInt())
+                .mapToObj(ClusterScript::bytes)
+                .flatMap(key ->
+                    ((List<byte[]>) call(Function.DEQUEUE,
+                            key,
+                            bytes(queue),
+                            bytes(now.toEpochMilli()),
+                            bytes(maxKeys))).stream())
+                .collect(Collectors.toList()));
+
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public QueueStatistics getQueueStatistics(String queue) {
+        return unpackQueueStatistics(IntStream.range(0, numSlots)
                     .map(x -> nextSlot.getAsInt())
                     .mapToObj(ClusterScript::bytes)
                     .flatMap(key ->
-                            ((List<byte[]>) call(Function.DEQUEUE,
-                                    key,
-                                    bytes(queue),
-                                    bytes(now.toEpochMilli()),
-                                    bytes(maxKeys))).stream())
+                        ((List<byte[]>) call(Function.GET_QUEUE_STATS, key, bytes(queue))).stream())
                 .collect(Collectors.toList()));
-
     }
 
     /**

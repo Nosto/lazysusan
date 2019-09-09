@@ -16,8 +16,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
@@ -88,6 +90,14 @@ abstract class AbstractScript {
         call(Function.ACK, slot(tenant), bytes(queue), bytes(tenant), bytes(key));
     }
 
+    /**
+     * Collects statistics for the specified queue.
+     *
+     * @param queue The name of the queue
+     * @return {@link QueueStatistics} for the queue.
+     */
+    public abstract QueueStatistics getQueueStatistics(String queue);
+
     protected byte[] loadScript() throws IOException {
         return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
                 .replace("KEY_PAYLOAD_SEPARATOR", KEY_PAYLOAD_SEPARATOR)
@@ -114,7 +124,7 @@ abstract class AbstractScript {
         return Long.toString(l).getBytes(StandardCharsets.UTF_8);
     }
 
-    static List<TenantMessage> unpack(List<byte[]> response) {
+    static List<TenantMessage> unpackTenantMessage(List<byte[]> response) {
         ArrayList<TenantMessage> result = new ArrayList<>(response.size() >> 1);
         Iterator<byte[]> it = response.iterator();
         while (it.hasNext()) {
@@ -123,10 +133,24 @@ abstract class AbstractScript {
         return result;
     }
 
+    static QueueStatistics unpackQueueStatistics(List<Object> response) {
+        Map<String, TenantStatistics> tenantStatisticsMap = new HashMap<>();
+        Iterator<Object> it = response.iterator();
+        while (it.hasNext()) {
+            TenantStatistics tenantStatistics = new TenantStatistics(
+                    new String((byte[]) it.next()),
+                    (Long) it.next(),
+                    (Long) it.next());
+            tenantStatisticsMap.put(tenantStatistics.getTenant(), tenantStatistics);
+        }
+        return new QueueStatistics(tenantStatisticsMap);
+    }
+
     enum Function {
         ENQUEUE("enqueue"),
         DEQUEUE("dequeue"),
-        ACK("ack");
+        ACK("ack"),
+        GET_QUEUE_STATS("queuestats");
 
         private final byte[] name;
 

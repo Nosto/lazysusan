@@ -164,6 +164,14 @@ public final class ConnectionManager {
     }
 
     /**
+     * @param queueName The name of the queue
+     * @return The queue's statistics.
+     */
+    public QueueStatistics getQueueStatistics(String queueName) {
+        return script.getQueueStatistics(queueName);
+    }
+
+    /**
      * @return A new {@link Factory} for creating a new instance of {@link ConnectionManager}.
      */
     public static Factory factory() {
@@ -271,7 +279,6 @@ public final class ConnectionManager {
          * @throws IllegalArgumentException if more than one {@link MessageHandler} returns the same class
          * for {@link MessageHandler#getMessageClass()}
          * @return Current {@link Factory} instance.
-         *
          */
         public Factory withMessageHandlers(String queueName, MessageHandler<?>... messageHandlers) {
             queueName = Objects.requireNonNull(queueName).trim();
@@ -288,8 +295,9 @@ public final class ConnectionManager {
                     .collect(Collectors.groupingBy(MessageHandler::getMessageClass))
                     .forEach((messageClass, handlers) -> {
                         if (handlers.size() > 1) {
-                            throw new IllegalArgumentException("More than one MessageHandler handling the same class: "
-                                    + messageClass);
+                            String message = String.format("More than one MessageHandler handling the same class: %s",
+                                    messageClass);
+                            throw new IllegalArgumentException(message);
                         }
                     });
 

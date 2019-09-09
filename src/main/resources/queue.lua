@@ -66,6 +66,17 @@ function public.ack(slot, queue, tenant, key)
     end
 end
 
+function public.queuestats(slot, queue)
+    local tenants = redis.call("zrangebyscore", private.schedule_key(slot, queue), "-inf", "+inf")
+    local result = {}
+    for _, tenant in ipairs(tenants) do
+        result[#result + 1] = tenant
+        result[#result + 1] = redis.call("hlen", private.invisible_payload_key(slot, queue, tenant))
+        result[#result + 1] = redis.call("llen", private.visible_key(slot, queue, tenant))
+    end
+    return result
+end
+
 function private.schedule_key(slot, queue)
     return "mq:{" .. slot .. "}:" .. queue .. ":schedule"
 end
