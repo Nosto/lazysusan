@@ -29,7 +29,13 @@ public class SingleNodeScript extends AbstractScript {
     @Override
     @SuppressWarnings("unchecked")
     public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys) {
-        return unpack((List<byte[]>) call(Function.DEQUEUE, SLOT, bytes(queue), bytes(now.toEpochMilli()), bytes(maxKeys)));
+        return unpackTenantMessage((List<byte[]>) call(Function.DEQUEUE, SLOT, bytes(queue), bytes(now.toEpochMilli()), bytes(maxKeys)));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public QueueStatistics getQueueStatistics(String queue) {
+        return unpackQueueStatistics((List<Object>) call(Function.GET_QUEUE_STATS, SLOT, bytes(queue)));
     }
 
     @Override
