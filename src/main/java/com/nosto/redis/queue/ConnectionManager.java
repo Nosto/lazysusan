@@ -1,6 +1,5 @@
-
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -39,8 +38,8 @@ import redis.clients.jedis.BinaryScriptingCommands;
 /**
  * A class for enqueuing and for polling for messages.
  */
-public class ConnectionManager {
-    private static final Logger logger = LogManager.getLogger(ConnectionManager.class);
+public final class ConnectionManager {
+    private static final Logger LOGGER = LogManager.getLogger(ConnectionManager.class);
 
     private final AbstractScript script;
     private final MessageConverter messageConverter;
@@ -71,7 +70,7 @@ public class ConnectionManager {
      * @param queueName The queue to send messages to.
      * @param keyFunction The function that provides a unique key for enqueued messages.
      * @param <T> The type of message that will be enqueued.
-     * @return
+     * @return A new instance of {@link MessageHandler} for the given queue.
      */
     public <T> MessageSender<T> createSender(String queueName, Function<T, String> keyFunction) {
         return new MessageSenderImpl<>(script, queueName, keyFunction, messageConverter);
@@ -108,7 +107,7 @@ public class ConnectionManager {
                 QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, pollPeriod,
                         queueMessageHandlers, random);
 
-                logger.debug("Scheduling poller for queue '{}'", queueName);
+                LOGGER.debug("Scheduling poller for queue '{}'", queueName);
 
                 queuePollerThreadPool.submit(queuePoller);
                 runningPollers.add(queuePoller);
@@ -122,6 +121,7 @@ public class ConnectionManager {
      * Stop polling for messages.
      * @param timeout The amount of time to wait for polling and message handling to stop.
      * @return {@code true} if shut down has completed within {@code timeout}.
+     * @throws InterruptedException if interrupted while waiting.
      */
     public boolean shutdown(Duration timeout) throws InterruptedException {
         startUpShutdownLock.lock();
@@ -170,10 +170,16 @@ public class ConnectionManager {
         return new Factory();
     }
 
-    public static class Factory {
+    /**
+     * Builds a new instance of {@link ConnectionManager}.
+     */
+    public static final class Factory {
+        private static final long DEFAULT_POLL_DURATION = 100L;
+        private static final int DEFAULT_DEQUEUE_SIZE = 100;
+
         private AbstractScript script;
-        private Duration pollPeriod = Duration.ofMillis(100);
-        private int dequeueSize = 100;
+        private Duration pollPeriod = Duration.ofMillis(DEFAULT_POLL_DURATION);
+        private int dequeueSize = DEFAULT_DEQUEUE_SIZE;
         private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
         private Map<String, List<MessageHandler<?>>> messageHandlers = new HashMap<>();
 
@@ -182,6 +188,8 @@ public class ConnectionManager {
 
         /**
          * Connect to a single instance.
+         * @param redisClient The client for connecting to the single Redis node.
+         * @return Current {@link Factory} instance.
          */
         public Factory withClient(BinaryScriptingCommands redisClient) {
             Objects.requireNonNull(redisClient);
@@ -195,6 +203,9 @@ public class ConnectionManager {
 
         /**
          * Connect to a cluster.
+         * @param rediClusterClient The client for connecting to the Redis cluster.
+         * @param numberSlots The number of slots in the cluster.
+         * @return Current {@link Factory} instance.
          */
         public Factory withClient(BinaryJedisCluster rediClusterClient, int numberSlots) {
             Objects.requireNonNull(rediClusterClient);
@@ -218,6 +229,8 @@ public class ConnectionManager {
         /**
          * The interval to wait between polling for messages.
          * Default value is 100 milliseconds.
+         * @param pollPeriod The {@link Duration} to wait if no messages were returned by the previous dequeue.
+         * @return Current {@link Factory} instance.
          */
         public Factory withPollPeriod(Duration pollPeriod) {
             this.pollPeriod = Objects.requireNonNull(pollPeriod);
@@ -226,6 +239,7 @@ public class ConnectionManager {
 
         /**
          * @param dequeueSize The amount of messages to attempt to dequeue in each poll.
+         * @return Current {@link Factory} instance.
          */
         public Factory withDequeueSize(int dequeueSize) {
             if (dequeueSize <= 0) {
@@ -237,8 +251,10 @@ public class ConnectionManager {
         }
 
         /**
-         * Determine how messages are serialised and deserialised.
+         * Determine how messages are serialized and deserialized.
          * Default value is an instance of {@link PolymorphicJacksonMessageConverter}.
+         * @param messageConverter A {@link MessageConverter} for serializing and deserializing messages.
+         * @return Current {@link Factory} instance.
          */
         public Factory withMessageConverter(MessageConverter messageConverter) {
             this.messageConverter = Objects.requireNonNull(messageConverter);
@@ -247,11 +263,14 @@ public class ConnectionManager {
 
         /**
          * Set the message handlers for a queue.
+         * @param queueName The name of the queue.
+         * @param messageHandlers The handlers for handling messages from the queue. At least one must be defined.
          * @throws NullPointerException if {@code queueName} is {@code null}.
          * @throws IllegalArgumentException if {@code queueName} was already set.
          * @throws IllegalStateException if no message handlers are set.
          * @throws IllegalArgumentException if more than one {@link MessageHandler} returns the same class
          * for {@link MessageHandler#getMessageClass()}
+         * @return Current {@link Factory} instance.
          *
          */
         public Factory withMessageHandlers(String queueName, MessageHandler<?>... messageHandlers) {
@@ -269,7 +288,8 @@ public class ConnectionManager {
                     .collect(Collectors.groupingBy(MessageHandler::getMessageClass))
                     .forEach((messageClass, handlers) -> {
                         if (handlers.size() > 1) {
-                            throw new IllegalArgumentException("More than one MessageHandler handling the same class: " + messageClass);
+                            throw new IllegalArgumentException("More than one MessageHandler handling the same class: "
+                                    + messageClass);
                         }
                     });
 
@@ -277,6 +297,9 @@ public class ConnectionManager {
             return this;
         }
 
+        /**
+         * @return A new instance of {@link ConnectionManager}.
+         */
         public ConnectionManager build() {
             Objects.requireNonNull(script, "Redis client was not configured.");
 

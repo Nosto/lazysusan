@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -17,9 +17,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.StdTypeResolverBuilder;
 import com.nosto.redis.queue.MessageConverter;
 
-public class PolymorphicJacksonMessageConverter implements MessageConverter {
+/**
+ * A {@link MessageConverter} that serializes messages into JSON. This uses
+ * <a href="https://github.com/FasterXML/jackson-docs/wiki/JacksonPolymorphicDeserialization">Jackson's polymorphic
+ * deserlaization</a> feature to achieve this.
+ */
+public final class PolymorphicJacksonMessageConverter implements MessageConverter {
     private final ObjectMapper objectMapper;
 
+    /**
+     * Configures a new {@link ObjectMapper} to use polymorphic deserlaization.
+     */
     public PolymorphicJacksonMessageConverter() {
         objectMapper = new ObjectMapper();
         objectMapper.setDefaultTyping(new StdTypeResolverBuilder()

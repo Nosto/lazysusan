@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -21,12 +21,18 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 
+/**
+ * Java wrapper for executing a Redis script.
+ */
 abstract class AbstractScript {
     /**
-     * Lua return true gets mapped to 1L
+     * Lua return true gets mapped to 1L.
      */
     private static final Long TRUE_RESPONSE = 1L;
 
+    /**
+     * String that separates message key and payload.
+     */
     protected static final String KEY_PAYLOAD_SEPARATOR = ":";
 
     /**
@@ -37,7 +43,8 @@ abstract class AbstractScript {
      * @param queue The name of the queue.
      * @param tenantMessage The message to be added.
      * @return true if the message was added, false if it was a duplicate
-     * @throws IllegalArgumentException if {@link TenantMessage#getKey()} contains {@link AbstractScript#KEY_PAYLOAD_SEPARATOR}
+     * @throws IllegalArgumentException if {@link TenantMessage#getKey()} contains
+     * {@link AbstractScript#KEY_PAYLOAD_SEPARATOR}
      */
     public boolean enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
         if (tenantMessage.key.contains(KEY_PAYLOAD_SEPARATOR)) {
@@ -95,7 +102,7 @@ abstract class AbstractScript {
         return evalsha(Collections.singletonList(key), argsList);
     }
 
-    abstract Object evalsha(final List<byte[]> keys, final List<byte[]> args);
+    abstract Object evalsha(List<byte[]> keys, List<byte[]> args);
 
     abstract byte[] slot(String tenant);
 
@@ -137,7 +144,7 @@ abstract class AbstractScript {
         private final String key;
         private final byte[] payload;
 
-        public TenantMessage(String tenant, String key, byte[] payload) {
+        TenantMessage(String tenant, String key, byte[] payload) {
             this.tenant = tenant;
             this.key = key;
             this.payload = payload;

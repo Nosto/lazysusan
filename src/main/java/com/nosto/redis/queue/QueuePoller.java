@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -23,7 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 class QueuePoller implements Runnable {
-    private static final Logger logger = LogManager.getLogger(QueuePoller.class);
+    private static final Logger LOGGER = LogManager.getLogger(QueuePoller.class);
 
     private static final int RANDOM_BOUND = 50;
 
@@ -59,30 +59,30 @@ class QueuePoller implements Runnable {
             try {
                 if (poll() == 0) {
                     long sleepMS = pollPeriod.toMillis() + Math.abs(random.nextInt(RANDOM_BOUND));
-                    logger.debug("Received zero messages in last poll. Sleeping for {}ms.", sleepMS);
+                    LOGGER.debug("Received zero messages in last poll. Sleeping for {}ms.", sleepMS);
 
                     TimeUnit.MILLISECONDS.sleep(sleepMS);
                 }
             } catch (InterruptedException e) {
-                logger.warn("Got interrupted while sleeping. Stopping.", e);
+                LOGGER.warn("Got interrupted while sleeping. Stopping.", e);
                 stop = true;
             } catch (Exception e) {
-                logger.error("Error while polling. Continuing", e);
+                LOGGER.error("Error while polling. Continuing", e);
             }
         }
     }
 
     public void stop() {
-        logger.info("Stopping.");
+        LOGGER.info("Stopping.");
         this.stop = true;
     }
 
     private int poll() {
         List<AbstractScript.TenantMessage> messages = redis.dequeue(Instant.now(), queueName, dequeueSize);
-        logger.debug("Dequeued {} messages for queue '{}'", messages.size(), queueName);
+        LOGGER.debug("Dequeued {} messages for queue '{}'", messages.size(), queueName);
 
         for (AbstractScript.TenantMessage message : messages) {
-            logger.debug("Received message for tenent '{}' and key '{}'",
+            LOGGER.debug("Received message for tenent '{}' and key '{}'",
                     message.getTenant(), message.getKey());
 
             Object payload = messageConverter.deserialize(message.getPayload());

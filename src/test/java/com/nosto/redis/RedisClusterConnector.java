@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -16,7 +16,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.exceptions.JedisDataException;
 
-public class RedisClusterConnector extends ExternalResource implements RedisConnector{
+public class RedisClusterConnector extends ExternalResource implements RedisConnector {
     private final JedisCluster jedisCluster;
 
     public RedisClusterConnector() {
@@ -34,7 +34,7 @@ public class RedisClusterConnector extends ExternalResource implements RedisConn
             try (Jedis j = jedisPool.getResource()) {
                 j.flushDB();
             } catch (JedisDataException e) {
-                // redis.clients.jedis.exceptions.JedisDataException: READONLY You can't write against a read only slave.
+                // redis.clients.jedis.exceptions.JedisDataException: READONLY You can't write against a read only slave
             }
         });
     }
