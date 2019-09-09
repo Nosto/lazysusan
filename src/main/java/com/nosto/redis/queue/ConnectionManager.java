@@ -163,6 +163,10 @@ public class ConnectionManager {
         return queuePollerThreadPool != null && !queuePollerThreadPool.isShutdown();
     }
 
+    public QueueStatistics getQueueStatistics(String queueName) {
+        return script.getQueueStatistics(queueName);
+    }
+
     /**
      * @return A new {@link Factory} for creating a new instance of {@link ConnectionManager}.
      */

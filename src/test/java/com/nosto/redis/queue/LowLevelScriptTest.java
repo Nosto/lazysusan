@@ -103,6 +103,57 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", payload);
     }
 
+    @Test
+    public void getQueueStatistics() {
+        QueueStatistics stats = script.getQueueStatistics("q1");
+        assertTrue(stats.getTenantStatistics().isEmpty());
+
+        Instant now = Instant.now();
+        Instant later = now.plusSeconds(60);
+
+        enqueueMessages("q1", "t1", now, 2, later, 3);
+        enqueueMessages("q1", "t2", now, 1, later, 1);
+
+        stats = script.getQueueStatistics("q1");
+        assertEquals(2, stats.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 0, 5), stats.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 0, 2), stats.getTenantStatistics().get("t2"));
+
+        List<AbstractScript.TenantMessage> messages = script.dequeue(later, "q1", 100);
+        assertEquals(2, messages.size());
+
+        stats = script.getQueueStatistics("q1");
+        assertEquals(2, stats.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 1, 4), stats.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 1, 1), stats.getTenantStatistics().get("t2"));
+
+        enqueueMessages("q2", "t1", now, 3, later, 4);
+        enqueueMessages("q2", "t2", now, 3, later, 2);
+
+        stats = script.getQueueStatistics("q1");
+        assertEquals(2, stats.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 1, 4), stats.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 1, 1), stats.getTenantStatistics().get("t2"));
+
+        stats = script.getQueueStatistics("q2");
+        assertEquals(2, stats.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 0, 7), stats.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 0, 5), stats.getTenantStatistics().get("t2"));
+    }
+
+    private void enqueueMessages(String queue, String tenant, Instant now, int nowMessages, Instant later, int laterMessages) {
+        Duration duration = Duration.ofMillis(1);
+        int key = 0;
+
+        for (int i = 0; i < nowMessages; i++) {
+            script.enqueue(now, duration, queue, new AbstractScript.TenantMessage(tenant, Integer.toString(key++), "bar".getBytes(StandardCharsets.UTF_8)));
+        }
+
+        for (int i = 0; i < laterMessages; i++) {
+            script.enqueue(later, duration, queue, new AbstractScript.TenantMessage(tenant, Integer.toString(key++), "bar".getBytes(StandardCharsets.UTF_8)));
+        }
+    }
+
     private void dequeueAndAssert(Instant now, String queue, String... expected) {
         List<String> expectedList = Arrays.asList(expected);
         Collections.sort(expectedList);
