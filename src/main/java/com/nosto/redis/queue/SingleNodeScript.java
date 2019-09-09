@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -16,12 +16,12 @@ import java.util.List;
 
 import redis.clients.jedis.BinaryScriptingCommands;
 
-public class SingleNodeScript extends AbstractScript {
+class SingleNodeScript extends AbstractScript {
     private static final byte[] SLOT = new byte[] {};
     private final BinaryScriptingCommands jedis;
     private final byte[] sha;
 
-    public SingleNodeScript(BinaryScriptingCommands jedis) throws IOException {
+    SingleNodeScript(BinaryScriptingCommands jedis) throws IOException {
         this.jedis = jedis;
         sha = jedis.scriptLoad(loadScript());
     }
@@ -29,7 +29,11 @@ public class SingleNodeScript extends AbstractScript {
     @Override
     @SuppressWarnings("unchecked")
     public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys) {
-        return unpackTenantMessage((List<byte[]>) call(Function.DEQUEUE, SLOT, bytes(queue), bytes(now.toEpochMilli()), bytes(maxKeys)));
+        return unpackTenantMessage((List<byte[]>) call(Function.DEQUEUE,
+                SLOT,
+                bytes(queue),
+                bytes(now.toEpochMilli()),
+                bytes(maxKeys)));
     }
 
     @Override

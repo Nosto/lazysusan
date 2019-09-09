@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -28,8 +28,12 @@ public class ParentPojo {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ParentPojo that = (ParentPojo) o;
         return Objects.equals(propertyA, that.propertyA);
     }
@@ -41,8 +45,6 @@ public class ParentPojo {
 
     @Override
     public String toString() {
-        return "ParentPojo{" +
-                "propertyA='" + propertyA + '\'' +
-                '}';
+        return "ParentPojo{" + "propertyA='" + propertyA + '\'' + '}';
     }
 }

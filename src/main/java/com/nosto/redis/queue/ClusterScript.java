@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.exceptions.JedisNoScriptException;
 
-public class ClusterScript extends AbstractScript {
+class ClusterScript extends AbstractScript {
     private final BinaryJedisCluster jedis;
     private final byte[] source;
     private final byte[] sha;
@@ -33,7 +33,7 @@ public class ClusterScript extends AbstractScript {
     private final IntSupplier nextSlot;
     private final int numSlots;
 
-    public ClusterScript(BinaryJedisCluster jedis, int numSlots) throws IOException {
+    ClusterScript(BinaryJedisCluster jedis, int numSlots) throws IOException {
         this.jedis = jedis;
         this.numSlots = numSlots;
 
@@ -41,13 +41,13 @@ public class ClusterScript extends AbstractScript {
         sha = jedis.scriptLoad(source, new byte[]{0}); // load it on a random host
 
         nextSlot = new IntSupplier() {
-            final List<Integer> permutation = IntStream.range(0, numSlots)
+            private final List<Integer> permutation = IntStream.range(0, numSlots)
                     .boxed()
                     .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
                         Collections.shuffle(list);
                         return list;
                     }));
-            final Iterator<Integer> it = Stream.generate(() -> permutation).flatMap(List::stream).iterator();
+            private final Iterator<Integer> it = Stream.generate(() -> permutation).flatMap(List::stream).iterator();
 
             @Override
             public int getAsInt() {
@@ -59,16 +59,28 @@ public class ClusterScript extends AbstractScript {
     @Override
     @SuppressWarnings("unchecked")
     public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys) {
-        return unpackTenantMessage(IntStream.range(0, numSlots).map(x -> nextSlot.getAsInt()).mapToObj(ClusterScript::bytes).flatMap(key ->
-                ((List<byte[]>) call(Function.DEQUEUE, key, bytes(queue), bytes(now.toEpochMilli()), bytes(maxKeys))).stream()).collect(Collectors.toList()));
+        return unpackTenantMessage(IntStream.range(0, numSlots)
+                .map(x -> nextSlot.getAsInt())
+                .mapToObj(ClusterScript::bytes)
+                .flatMap(key ->
+                    ((List<byte[]>) call(Function.DEQUEUE,
+                            key,
+                            bytes(queue),
+                            bytes(now.toEpochMilli()),
+                            bytes(maxKeys))).stream())
+                .collect(Collectors.toList()));
 
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public QueueStatistics getQueueStatistics(String queue) {
-        return unpackQueueStatistics(IntStream.range(0, numSlots).map(x -> nextSlot.getAsInt()).mapToObj(ClusterScript::bytes).flatMap(key ->
-                ((List<byte[]>) call(Function.GET_QUEUE_STATS, key, bytes(queue))).stream()).collect(Collectors.toList()));
+        return unpackQueueStatistics(IntStream.range(0, numSlots)
+                    .map(x -> nextSlot.getAsInt())
+                    .mapToObj(ClusterScript::bytes)
+                    .flatMap(key ->
+                        ((List<byte[]>) call(Function.GET_QUEUE_STATS, key, bytes(queue))).stream())
+                .collect(Collectors.toList()));
     }
 
     /**

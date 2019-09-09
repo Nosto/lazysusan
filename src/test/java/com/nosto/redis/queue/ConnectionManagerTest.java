@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -39,7 +39,7 @@ import com.nosto.redis.queue.model.Child2Pojo;
 import com.nosto.redis.queue.model.ParentPojo;
 
 public class ConnectionManagerTest extends AbstractScriptTest {
-    private static final Logger logger = LogManager.getLogger(ConnectionManagerTest.class);
+    private static final Logger LOGGER = LogManager.getLogger(ConnectionManagerTest.class);
 
     private static final Duration INVISIBLE_DURATION = Duration.ofMillis(50);
     private static final Duration SHUTDOWN_DURATION = Duration.ofSeconds(2);
@@ -49,7 +49,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     @After
     public void tearDown() throws Exception {
         if (connectionManager != null && connectionManager.isRunning()) {
-            logger.warn("ConnectionManager is still running.");
+            LOGGER.warn("ConnectionManager is still running.");
             connectionManager.shutdownNow();
         }
     }
@@ -77,12 +77,14 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         assertTrue(m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a2", "b2")));
 
         verifyMessageHandlerAddedToPoller(c1Handler);
-        verifyMessagesReceived(Child1Pojo.class, c1Handler, "t1", new Child1Pojo("a1", "b1"), new Child1Pojo("a2", "b2"));
+        verifyMessagesReceived(Child1Pojo.class, c1Handler, "t1", new Child1Pojo("a1", "b1"),
+                new Child1Pojo("a2", "b2"));
         verifyMessagesReceived(Child1Pojo.class, c1Handler, "t2", new Child1Pojo("a1", "b1"));
 
         verifyMessageHandlerAddedToPoller(c2Handler);
         verifyMessagesReceived(Child2Pojo.class, c2Handler, "t1", new Child2Pojo("a1", "b1"));
-        verifyMessagesReceived(Child2Pojo.class, c2Handler, "t2", new Child2Pojo("a1", "b1"), new Child2Pojo("a2", "b2"));
+        verifyMessagesReceived(Child2Pojo.class, c2Handler, "t2", new Child2Pojo("a1", "b1"),
+                new Child2Pojo("a2", "b2"));
 
         verifyNoMoreInteractions(c1Handler);
         verifyNoMoreInteractions(c2Handler);
@@ -205,7 +207,8 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         }
     }
 
-    private void configureAndStartConnectionManager(Function<ConnectionManager.Factory, ConnectionManager.Factory> factoryConfigurator) {
+    private void configureAndStartConnectionManager(Function<ConnectionManager.Factory,
+            ConnectionManager.Factory> factoryConfigurator) {
         ConnectionManager.Factory connectionManagerFactory = ConnectionManager.factory()
                 .withScript(script);
 
@@ -225,7 +228,9 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         assertFalse(connectionManager.isRunning());
     }
 
-    private <T> void verifyMessagesReceived(Class<T> c, MessageHandler<T> mockMessageHandler, String expectedTenant, T... expectedMessages) {
+    private <T> void verifyMessagesReceived(Class<T> c, MessageHandler<T> mockMessageHandler,
+                                            String expectedTenant,
+                                            T... expectedMessages) {
         ArgumentCaptor<T> messageCaptor = ArgumentCaptor.forClass(c);
 
         verify(mockMessageHandler, timeout(SHUTDOWN_DURATION.toMillis()).times(expectedMessages.length))

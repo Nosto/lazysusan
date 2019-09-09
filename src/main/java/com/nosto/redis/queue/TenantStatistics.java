@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -11,7 +11,10 @@ package com.nosto.redis.queue;
 
 import java.util.Objects;
 
-public class TenantStatistics {
+/**
+ * Queue statistics associated with a tenant.
+ */
+public final class TenantStatistics {
     private final String tenant;
     private final long invisibleMessageCount;
     private final long visibleMessageCount;
@@ -22,22 +25,35 @@ public class TenantStatistics {
         this.visibleMessageCount = visibleMessageCount;
     }
 
+    /**
+     * @return The tenant.
+     */
     public String getTenant() {
         return tenant;
     }
 
+    /**
+     * @return Total number of invisible messages for the tenant.
+     */
     public long getInvisibleMessageCount() {
         return invisibleMessageCount;
     }
 
+    /**
+     * @return Total number of visible messages for the tenant.
+     */
     public long getVisibleMessageCount() {
         return visibleMessageCount;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         TenantStatistics that = (TenantStatistics) o;
         return invisibleMessageCount == that.invisibleMessageCount &&
                 visibleMessageCount == that.visibleMessageCount &&

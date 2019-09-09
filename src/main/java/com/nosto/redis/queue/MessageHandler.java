@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Nosto Solutions Ltd All Rights Reserved.
+ * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
  * <p>
  * This software is the confidential and proprietary information of
  * Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -9,14 +9,21 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
+/**
+ * Handle dequeued messages.
+ * @param <T>
+ */
 public interface MessageHandler<T> {
     /**
      * Handle a dequeued message.
      *
-     * @param tenant
-     * @param message
+     * @param tenant The message's tenant.
+     * @param message The deserialized message payload.
      */
     void handleMessage(String tenant, T message);
 
+    /**
+     * @return The {@link Class} that this implementation handles.
+     */
     Class<T> getMessageClass();
 }
