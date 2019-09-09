@@ -7,25 +7,16 @@
  * accordance with the terms of the agreement you entered into with
  * Nosto Solutions Ltd.
  ******************************************************************************/
-package com.nosto.redis;
+package com.nosto.redis.queue;
 
-import org.junit.rules.ExternalResource;
+public interface MessageHandler<T> {
+    /**
+     * Handle a dequeued message.
+     *
+     * @param tenant
+     * @param message
+     */
+    void handleMessage(String tenant, T message);
 
-import redis.clients.jedis.Jedis;
-
-public class SingleNodeRedisConnector extends ExternalResource implements RedisConnector {
-    private final Jedis jedis;
-
-    public SingleNodeRedisConnector() {
-        jedis = new Jedis("redis.dev.nos.to", 6379);
-    }
-
-    public Jedis getJedis() {
-        return jedis;
-    }
-
-    @Override
-    public void flush() {
-        jedis.flushDB();
-    }
+    Class<T> getMessageClass();
 }

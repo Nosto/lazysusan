@@ -9,17 +9,18 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import org.apache.commons.io.IOUtils;
-import redis.clients.jedis.BinaryJedisCluster;
-import redis.clients.jedis.exceptions.JedisNoScriptException;
-
 import java.io.IOException;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import redis.clients.jedis.BinaryJedisCluster;
+import redis.clients.jedis.exceptions.JedisNoScriptException;
 
 public class ClusterScript extends AbstractScript {
     private final BinaryJedisCluster jedis;

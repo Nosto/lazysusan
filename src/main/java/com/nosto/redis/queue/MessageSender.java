@@ -7,25 +7,18 @@
  * accordance with the terms of the agreement you entered into with
  * Nosto Solutions Ltd.
  ******************************************************************************/
-package com.nosto.redis;
+package com.nosto.redis.queue;
 
-import org.junit.rules.ExternalResource;
+import java.time.Duration;
 
-import redis.clients.jedis.Jedis;
-
-public class SingleNodeRedisConnector extends ExternalResource implements RedisConnector {
-    private final Jedis jedis;
-
-    public SingleNodeRedisConnector() {
-        jedis = new Jedis("redis.dev.nos.to", 6379);
-    }
-
-    public Jedis getJedis() {
-        return jedis;
-    }
-
-    @Override
-    public void flush() {
-        jedis.flushDB();
-    }
+public interface MessageSender<T> {
+    /**
+     * Enqueue a message.
+     * @param tenant
+     * @param invisiblePeriod
+     * @param message
+     * @return {@code true} if the message was successfully enqueued.<br>
+     * {@code false} if an existing message has the same key.
+     */
+    boolean send(String tenant, Duration invisiblePeriod, T message);
 }

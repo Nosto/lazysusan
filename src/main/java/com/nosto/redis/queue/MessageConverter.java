@@ -9,22 +9,18 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import com.nosto.redis.SingleNodeRedisConnector;
-import org.junit.Before;
-import org.junit.ClassRule;
+/**
+ * This is used for serialising messages before enqueuing them and for
+ * deserialising dequeued messages so they can be passed to their corresponding {@link MessageHandler}.
+ */
+public interface MessageConverter {
+    /**
+     * @param messagePayload The message to be enqueued.
+     */
+    byte[] serialize(Object messagePayload);
 
-import java.io.IOException;
-
-public class SingleNodeScriptTest extends AbstractScriptTest {
-    @ClassRule
-    public static SingleNodeRedisConnector jedis = new SingleNodeRedisConnector();
-
-    public SingleNodeScriptTest() throws IOException {
-        super(new SingleNodeScript(jedis.getJedis()));
-    }
-
-    @Before
-    public void flush() {
-        jedis.getJedis().flushDB();
-    }
+    /**
+     * @param messagePayload A dequeued message.
+     */
+    Object deserialize(byte[] messagePayload);
 }
