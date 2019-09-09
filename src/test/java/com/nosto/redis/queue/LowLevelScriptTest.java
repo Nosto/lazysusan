@@ -108,17 +108,22 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         QueueStatistics stats = script.getQueueStatistics("q1");
         assertTrue(stats.getTenantStatistics().isEmpty());
 
+        stats = script.getQueueStatistics("q2");
+        assertTrue(stats.getTenantStatistics().isEmpty());
+
         Instant now = Instant.now();
         Instant later = now.plusSeconds(60);
 
         enqueueMessages("q1", "t1", now, 2, later, 3);
         enqueueMessages("q1", "t2", now, 1, later, 1);
 
+        // Different statistics for each tenant
         stats = script.getQueueStatistics("q1");
         assertEquals(2, stats.getTenantStatistics().size());
         assertEquals(new TenantStatistics("t1", 0, 5), stats.getTenantStatistics().get("t1"));
         assertEquals(new TenantStatistics("t2", 0, 2), stats.getTenantStatistics().get("t2"));
 
+        // Dequeueing messages makes 1 message invisible per tenant
         List<AbstractScript.TenantMessage> messages = script.dequeue(later, "q1", 100);
         assertEquals(2, messages.size());
 
@@ -127,14 +132,17 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertEquals(new TenantStatistics("t1", 1, 4), stats.getTenantStatistics().get("t1"));
         assertEquals(new TenantStatistics("t2", 1, 1), stats.getTenantStatistics().get("t2"));
 
+        // Enqueue messages to another queue
         enqueueMessages("q2", "t1", now, 3, later, 4);
         enqueueMessages("q2", "t2", now, 3, later, 2);
 
+        // q1 stats remain the same
         stats = script.getQueueStatistics("q1");
         assertEquals(2, stats.getTenantStatistics().size());
         assertEquals(new TenantStatistics("t1", 1, 4), stats.getTenantStatistics().get("t1"));
         assertEquals(new TenantStatistics("t2", 1, 1), stats.getTenantStatistics().get("t2"));
 
+        // q2 stats now returned
         stats = script.getQueueStatistics("q2");
         assertEquals(2, stats.getTenantStatistics().size());
         assertEquals(new TenantStatistics("t1", 0, 7), stats.getTenantStatistics().get("t1"));
