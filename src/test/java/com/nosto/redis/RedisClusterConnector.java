@@ -10,10 +10,13 @@
 package com.nosto.redis;
 
 import org.junit.rules.ExternalResource;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.JedisCluster;
 
-public class RedisClusterConnector extends ExternalResource {
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.exceptions.JedisDataException;
+
+public class RedisClusterConnector extends ExternalResource implements RedisConnector{
     private final JedisCluster jedisCluster;
 
     public RedisClusterConnector() {
@@ -23,5 +26,16 @@ public class RedisClusterConnector extends ExternalResource {
 
     public JedisCluster getJedisCluster() {
         return jedisCluster;
+    }
+
+    @Override
+    public void flush() {
+        jedisCluster.getClusterNodes().forEach((key, jedisPool) -> {
+            try (Jedis j = jedisPool.getResource()) {
+                j.flushDB();
+            } catch (JedisDataException e) {
+                // redis.clients.jedis.exceptions.JedisDataException: READONLY You can't write against a read only slave.
+            }
+        });
     }
 }

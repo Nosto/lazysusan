@@ -9,13 +9,12 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import org.apache.commons.io.IOUtils;
-import redis.clients.jedis.BinaryScriptingCommands;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+
+import redis.clients.jedis.BinaryScriptingCommands;
 
 public class SingleNodeScript extends AbstractScript {
     private static final byte[] SLOT = new byte[] {};

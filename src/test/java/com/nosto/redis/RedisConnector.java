@@ -9,23 +9,6 @@
  ******************************************************************************/
 package com.nosto.redis;
 
-import org.junit.rules.ExternalResource;
-
-import redis.clients.jedis.Jedis;
-
-public class SingleNodeRedisConnector extends ExternalResource implements RedisConnector {
-    private final Jedis jedis;
-
-    public SingleNodeRedisConnector() {
-        jedis = new Jedis("redis.dev.nos.to", 6379);
-    }
-
-    public Jedis getJedis() {
-        return jedis;
-    }
-
-    @Override
-    public void flush() {
-        jedis.flushDB();
-    }
+public interface RedisConnector {
+    void flush();
 }
