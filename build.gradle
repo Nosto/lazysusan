@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'checkstyle'
+    id 'maven-publish'
 }
 
 group 'com.nosto'
@@ -9,7 +10,28 @@ version '1.0-SNAPSHOT'
 sourceCompatibility = 1.8
 
 repositories {
-    mavenCentral()
+    maven {
+        url 'https://repo.nos.to/content/groups/nosto/'
+        credentials {
+            username = nexusUsername
+            password = nexusPassword
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            url 'https://repo.nos.to/content/repositories/NostoDependencies/'
+            credentials {
+                username = nexusUsername
+                password = nexusPassword
+            }
+        }
+    }
+    publications {
+        maven(MavenPublication)
+    }
 }
 
 dependencies {
