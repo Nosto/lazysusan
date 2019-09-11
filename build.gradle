@@ -9,29 +9,22 @@ version '0.1.2'
 
 sourceCompatibility = 1.8
 
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    archiveClassifier = 'sources'
+}
+
+task javadocJar(type: Jar) {
+    from javadoc
+    archiveClassifier = 'javadoc'
+}
+
 repositories {
     maven {
         url 'https://repo.nos.to/content/groups/nosto/'
         credentials {
             username = nexusUsername
             password = nexusPassword
-        }
-    }
-}
-
-publishing {
-    repositories {
-        maven {
-            url 'https://repo.nos.to/content/repositories/NostoDependencies/'
-            credentials {
-                username = nexusUsername
-                password = nexusPassword
-            }
-        }
-    }
-    publications {
-        maven(MavenPublication) {
-            from components.java
         }
     }
 }
@@ -48,4 +41,34 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.9'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.9'
+}
+
+publishing {
+    repositories {
+        maven {
+            url 'https://repo.nos.to/content/repositories/NostoDependencies/'
+            credentials {
+                username = nexusUsername
+                password = nexusPassword
+            }
+        }
+    }
+    publications {
+        maven(MavenPublication) {
+            from components.java
+
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom {
+                url = 'https://github.com/Nosto/redis-multitenant-queue'
+            }
+        }
+    }
+}
+
+javadoc {
+    if(JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
 }
