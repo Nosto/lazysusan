@@ -11,6 +11,8 @@ package com.nosto.redis.queue.jackson;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.function.Function;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,7 +25,7 @@ public class PolymorphicJacksonMessageConverterTest {
 
     @Before
     public void setUp() {
-        converter = new PolymorphicJacksonMessageConverter();
+        converter = new PolymorphicJacksonMessageConverter(Function.identity());
     }
 
     /**
