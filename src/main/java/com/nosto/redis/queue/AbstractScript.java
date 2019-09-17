@@ -33,11 +33,6 @@ abstract class AbstractScript {
     private static final Long TRUE_RESPONSE = 1L;
 
     /**
-     * String that separates message key and payload.
-     */
-    protected static final String KEY_PAYLOAD_SEPARATOR = ":";
-
-    /**
      * Adds a message to a queue.
      *
      * @param now Time now
@@ -46,13 +41,8 @@ abstract class AbstractScript {
      * @param tenantMessage The message to be added.
      * @return true if the message was added, false if it was a duplicate
      * @throws IllegalArgumentException if {@link TenantMessage#getKey()} contains
-     * {@link AbstractScript#KEY_PAYLOAD_SEPARATOR}
      */
     public boolean enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
-        if (tenantMessage.key.contains(KEY_PAYLOAD_SEPARATOR)) {
-            throw new IllegalArgumentException("Key contains " + KEY_PAYLOAD_SEPARATOR);
-        }
-
         return TRUE_RESPONSE.equals(call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
@@ -100,7 +90,6 @@ abstract class AbstractScript {
 
     protected byte[] loadScript() throws IOException {
         return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
-                .replace("KEY_PAYLOAD_SEPARATOR", KEY_PAYLOAD_SEPARATOR)
                 .getBytes(StandardCharsets.UTF_8);
     }
 

@@ -1,6 +1,5 @@
 local public = {}
 local private = {}
-local keyseparator = "KEY_PAYLOAD_SEPARATOR"
 
 function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
     local visible_key = private.visible_key(slot, queue, tenant)
@@ -96,13 +95,6 @@ end
 
 function private.period(slot, queue)
     return "mq:{" .. slot .. "}:period:" .. queue
-end
-
--------------------------------------------------------------------------------
--- splits given string by a separator
--------------------------------------------------------------------------------
-function private.split(str, separator)
-    return str:match("([^" .. separator .. "]+)" .. separator .. "(.+)")
 end
 
 return public[ARGV[1]](unpack(ARGV, 2))

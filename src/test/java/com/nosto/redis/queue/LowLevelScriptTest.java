@@ -135,14 +135,6 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", "bar2");
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void enqueueWithInvalidKey() {
-        script.enqueue(Instant.EPOCH,
-                Duration.ofSeconds(5),
-                "q1",
-                new AbstractScript.TenantMessage("t1", "foo:", "bar".getBytes(StandardCharsets.UTF_8)));
-    }
-
     @Test
     public void enqueueJson() {
         String payload = "{\"key\":\"bar\"}";
