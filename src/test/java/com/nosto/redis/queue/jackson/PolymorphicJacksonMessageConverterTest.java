@@ -23,7 +23,7 @@ public class PolymorphicJacksonMessageConverterTest {
 
     @Before
     public void setUp() {
-        converter = new PolymorphicJacksonMessageConverter();
+        converter = new PolymorphicJacksonMessageConverter(objectMapper -> { });
     }
 
     /**

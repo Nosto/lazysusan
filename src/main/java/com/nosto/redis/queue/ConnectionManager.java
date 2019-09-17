@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,6 +31,7 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nosto.redis.queue.jackson.PolymorphicJacksonMessageConverter;
 
 import redis.clients.jedis.BinaryJedisCluster;
@@ -188,7 +190,7 @@ public final class ConnectionManager {
         private AbstractScript script;
         private Duration pollPeriod = Duration.ofMillis(DEFAULT_POLL_DURATION);
         private int dequeueSize = DEFAULT_DEQUEUE_SIZE;
-        private MessageConverter messageConverter = new PolymorphicJacksonMessageConverter();
+        private MessageConverter messageConverter;
         private Map<String, List<MessageHandler<?>>> messageHandlers = new HashMap<>();
 
         private Factory() {
@@ -198,6 +200,7 @@ public final class ConnectionManager {
          * Connect to a single instance.
          * @param redisClient The client for connecting to the single Redis node.
          * @return Current {@link Factory} instance.
+         * @throws NullPointerException if {@code redisClient} is {@code null}.
          */
         public Factory withClient(BinaryScriptingCommands redisClient) {
             Objects.requireNonNull(redisClient);
@@ -214,6 +217,8 @@ public final class ConnectionManager {
          * @param rediClusterClient The client for connecting to the Redis cluster.
          * @param numberSlots The number of slots in the cluster.
          * @return Current {@link Factory} instance.
+         * @throws NullPointerException if {@code rediClusterClient} is {@code null}.
+         * @throws IllegalArgumentException if {@code numberSlots} is less than or equal to zero.
          */
         public Factory withClient(BinaryJedisCluster rediClusterClient, int numberSlots) {
             Objects.requireNonNull(rediClusterClient);
@@ -239,6 +244,7 @@ public final class ConnectionManager {
          * Default value is 100 milliseconds.
          * @param pollPeriod The {@link Duration} to wait if no messages were returned by the previous dequeue.
          * @return Current {@link Factory} instance.
+         * @throws NullPointerException if {@code pollPeriod} is {@code null}.
          */
         public Factory withPollPeriod(Duration pollPeriod) {
             this.pollPeriod = Objects.requireNonNull(pollPeriod);
@@ -248,6 +254,7 @@ public final class ConnectionManager {
         /**
          * @param dequeueSize The amount of messages to attempt to dequeue in each poll.
          * @return Current {@link Factory} instance.
+         * @throws IllegalArgumentException if {@code dequeueSize} is less than or equal to zero.
          */
         public Factory withDequeueSize(int dequeueSize) {
             if (dequeueSize <= 0) {
@@ -263,6 +270,7 @@ public final class ConnectionManager {
          * Default value is an instance of {@link PolymorphicJacksonMessageConverter}.
          * @param messageConverter A {@link MessageConverter} for serializing and deserializing messages.
          * @return Current {@link Factory} instance.
+         * @throws NullPointerException if {@code messageConverter} is {@code null}
          */
         public Factory withMessageConverter(MessageConverter messageConverter) {
             this.messageConverter = Objects.requireNonNull(messageConverter);
@@ -270,15 +278,36 @@ public final class ConnectionManager {
         }
 
         /**
+         * Use {@link PolymorphicJacksonMessageConverter} for serializing and deserializing messages.
+         * @return Current {@link Factory} instance.
+         */
+        public Factory withPolymorphicJacksonMessageConverter() {
+            this.messageConverter = new PolymorphicJacksonMessageConverter(objectMapper -> { });
+            return this;
+        }
+
+        /**
+         * Use {@link PolymorphicJacksonMessageConverter} for serializing and deserializing messages.
+         * @param objectMapperCustomizer Customize {@link PolymorphicJacksonMessageConverter}'s {@link ObjectMapper}.
+         * @return Current {@link Factory} instance.
+         * @throws NullPointerException if {@code objectMapperCustomizer} is {@code null}.
+         */
+        public Factory withPolymorphicJacksonMessageConverter(Consumer<ObjectMapper> objectMapperCustomizer) {
+            Objects.requireNonNull(objectMapperCustomizer);
+            this.messageConverter = new PolymorphicJacksonMessageConverter(objectMapperCustomizer);
+            return this;
+        }
+
+        /**
          * Set the message handlers for a queue.
          * @param queueName The name of the queue.
          * @param messageHandlers The handlers for handling messages from the queue. At least one must be defined.
+         * @return Current {@link Factory} instance.
          * @throws NullPointerException if {@code queueName} is {@code null}.
          * @throws IllegalArgumentException if {@code queueName} was already set.
          * @throws IllegalStateException if no message handlers are set.
          * @throws IllegalArgumentException if more than one {@link MessageHandler} returns the same class
          * for {@link MessageHandler#getMessageClass()}
-         * @return Current {@link Factory} instance.
          */
         public Factory withMessageHandlers(String queueName, MessageHandler<?>... messageHandlers) {
             queueName = Objects.requireNonNull(queueName).trim();
@@ -307,9 +336,12 @@ public final class ConnectionManager {
 
         /**
          * @return A new instance of {@link ConnectionManager}.
+         * @throws NullPointerException if a client was not configured.
+         * @throws NullPointerException if a message converter was not configured.
          */
         public ConnectionManager build() {
             Objects.requireNonNull(script, "Redis client was not configured.");
+            Objects.requireNonNull(messageConverter, "MessageConverter was not configured.");
 
             return new ConnectionManager(script, messageConverter, pollPeriod, dequeueSize, messageHandlers);
         }
