@@ -118,6 +118,23 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertFalse(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
     }
 
+    /**
+     * If two messages have different payload but same de-duplication key,
+     * the latest one takes precedence.
+     */
+    @Test
+    public void latestTakesPrecedence() {
+        AbstractScript.TenantMessage msg1 =
+                new AbstractScript.TenantMessage("t1", "foo", "bar1".getBytes(StandardCharsets.UTF_8));
+        AbstractScript.TenantMessage msg2 =
+                new AbstractScript.TenantMessage("t1", "foo", "bar2".getBytes(StandardCharsets.UTF_8));
+
+        assertTrue(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg1));
+        assertFalse(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
+
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", "bar2");
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void enqueueWithInvalidKey() {
         script.enqueue(Instant.EPOCH,
