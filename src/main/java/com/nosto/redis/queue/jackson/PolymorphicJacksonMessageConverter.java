@@ -10,7 +10,7 @@
 package com.nosto.redis.queue.jackson;
 
 import java.io.IOException;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,12 +30,11 @@ public final class PolymorphicJacksonMessageConverter implements MessageConverte
      * Configures a new {@link ObjectMapper} to use polymorphic deserlaization.
      * @param objectMapperCustomizer Apply additional configurations to the {@link ObjectMapper}.
      */
-    public PolymorphicJacksonMessageConverter(Consumer<ObjectMapper> objectMapperCustomizer) {
-        objectMapper = new ObjectMapper();
+    public PolymorphicJacksonMessageConverter(Function<ObjectMapper, ObjectMapper> objectMapperCustomizer) {
+        objectMapper = objectMapperCustomizer.apply(new ObjectMapper());
         objectMapper.setDefaultTyping(new StdTypeResolverBuilder()
                 .init(JsonTypeInfo.Id.CLASS, null)
                 .inclusion(JsonTypeInfo.As.PROPERTY));
-        objectMapperCustomizer.accept(objectMapper);
     }
 
     @Override

@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -282,19 +281,19 @@ public final class ConnectionManager {
          * @return Current {@link Factory} instance.
          */
         public Factory withPolymorphicJacksonMessageConverter() {
-            this.messageConverter = new PolymorphicJacksonMessageConverter(objectMapper -> { });
+            this.messageConverter = new PolymorphicJacksonMessageConverter(Function.identity());
             return this;
         }
 
         /**
          * Use {@link PolymorphicJacksonMessageConverter} for serializing and deserializing messages.
-         * @param objectMapperCustomizer Customize {@link PolymorphicJacksonMessageConverter}'s {@link ObjectMapper}.
+         * @param customizer Customize {@link PolymorphicJacksonMessageConverter}'s {@link ObjectMapper}.
          * @return Current {@link Factory} instance.
-         * @throws NullPointerException if {@code objectMapperCustomizer} is {@code null}.
+         * @throws NullPointerException if {@code customizer} is {@code null}.
          */
-        public Factory withPolymorphicJacksonMessageConverter(Consumer<ObjectMapper> objectMapperCustomizer) {
-            Objects.requireNonNull(objectMapperCustomizer);
-            this.messageConverter = new PolymorphicJacksonMessageConverter(objectMapperCustomizer);
+        public Factory withPolymorphicJacksonMessageConverter(Function<ObjectMapper, ObjectMapper> customizer) {
+            Objects.requireNonNull(customizer);
+            this.messageConverter = new PolymorphicJacksonMessageConverter(customizer);
             return this;
         }
 
