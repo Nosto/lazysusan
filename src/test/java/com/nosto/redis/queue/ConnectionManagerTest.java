@@ -145,6 +145,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void startupWithoutHandlers() {
         connectionManager = ConnectionManager.factory()
                 .withScript(script)
+                .withPolymorphicJacksonMessageConverter()
                 .build();
 
         try {
@@ -210,7 +211,8 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     private void configureAndStartConnectionManager(Function<ConnectionManager.Factory,
             ConnectionManager.Factory> factoryConfigurator) {
         ConnectionManager.Factory connectionManagerFactory = ConnectionManager.factory()
-                .withScript(script);
+                .withScript(script)
+                .withPolymorphicJacksonMessageConverter();
 
         connectionManager = factoryConfigurator.apply(connectionManagerFactory)
                 .build();
