@@ -36,7 +36,7 @@ class MessageSenderImpl<T> implements MessageSender<T> {
     }
 
     @Override
-    public boolean send(String tenant, Duration invisiblePeriod, T message) {
+    public EnqueueResult send(String tenant, Duration invisiblePeriod, T message) {
         String key = keyFunction.apply(message);
         Objects.requireNonNull(key);
 

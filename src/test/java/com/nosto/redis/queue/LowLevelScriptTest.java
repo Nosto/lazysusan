@@ -10,7 +10,6 @@
 package com.nosto.redis.queue;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -111,19 +110,31 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         AbstractScript.TenantMessage msg2 =
                 new AbstractScript.TenantMessage("t2", "foo", "bar".getBytes(StandardCharsets.UTF_8));
 
-        assertTrue(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg1));
-        assertFalse(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg1));
+        assertEquals(EnqueueResult.SUCCESS, script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg1));
+        assertEquals(EnqueueResult.DUPLICATE_OVERWRITTEN,
+                script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg1));
 
-        assertTrue(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
-        assertFalse(script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
+        assertEquals(EnqueueResult.SUCCESS, script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
+        assertEquals(EnqueueResult.DUPLICATE_OVERWRITTEN,
+                script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void enqueueWithInvalidKey() {
-        script.enqueue(Instant.EPOCH,
-                Duration.ofSeconds(5),
-                "q1",
-                new AbstractScript.TenantMessage("t1", "foo:", "bar".getBytes(StandardCharsets.UTF_8)));
+    /**
+     * If two messages have different payload but same de-duplication key,
+     * the latest one takes precedence.
+     */
+    @Test
+    public void latestTakesPrecedence() {
+        AbstractScript.TenantMessage msg1 =
+                new AbstractScript.TenantMessage("t1", "foo", "bar1".getBytes(StandardCharsets.UTF_8));
+        AbstractScript.TenantMessage msg2 =
+                new AbstractScript.TenantMessage("t1", "foo", "bar2".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(EnqueueResult.SUCCESS, script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg1));
+        assertEquals(EnqueueResult.DUPLICATE_OVERWRITTEN,
+                script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
+
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", "bar2");
     }
 
     @Test
