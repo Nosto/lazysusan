@@ -45,7 +45,7 @@ public final class ConnectionManager {
     private final AbstractScript script;
     private final MessageConverter messageConverter;
     private final int dequeueSize;
-    private final Duration pollPeriod;
+    private final Duration waitAfterEmptyDequeue;
     private final Map<String, List<MessageHandler<?>>> messageHandlers;
     private List<QueuePoller> runningPollers;
     private final ReentrantLock startUpShutdownLock;
@@ -54,13 +54,13 @@ public final class ConnectionManager {
 
     private ConnectionManager(AbstractScript script,
                               MessageConverter messageConverter,
-                              Duration pollPeriod,
+                              Duration waitAfterEmptyDequeue,
                               int dequeueSize,
                               Map<String, List<MessageHandler<?>>> messageHanders) {
         this.script = script;
         this.messageConverter = messageConverter;
         this.dequeueSize = dequeueSize;
-        this.pollPeriod = pollPeriod;
+        this.waitAfterEmptyDequeue = waitAfterEmptyDequeue;
         this.messageHandlers = messageHanders;
 
         this.runningPollers = new ArrayList<>(messageHandlers.size());
@@ -105,7 +105,7 @@ public final class ConnectionManager {
                 String queueName = entry.getKey();
                 List<MessageHandler<?>> queueMessageHandlers = entry.getValue();
 
-                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, pollPeriod,
+                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, waitAfterEmptyDequeue,
                         queueMessageHandlers, random);
 
                 LOGGER.debug("Scheduling poller for queue '{}'", queueName);
@@ -187,7 +187,7 @@ public final class ConnectionManager {
         private static final int DEFAULT_DEQUEUE_SIZE = 100;
 
         private AbstractScript script;
-        private Duration pollPeriod = Duration.ofMillis(DEFAULT_POLL_DURATION);
+        private Duration waitAfterEmptyDequeue = Duration.ofMillis(DEFAULT_POLL_DURATION);
         private int dequeueSize = DEFAULT_DEQUEUE_SIZE;
         private MessageConverter messageConverter;
         private Map<String, List<MessageHandler<?>>> messageHandlers = new HashMap<>();
@@ -239,14 +239,15 @@ public final class ConnectionManager {
         }
 
         /**
-         * The interval to wait between polling for messages.
+         * The interval to wait after a dequeue returns no messages.
          * Default value is 100 milliseconds.
-         * @param pollPeriod The {@link Duration} to wait if no messages were returned by the previous dequeue.
+         * @param waitAfterEmptyDequeue The {@link Duration} to wait if no messages were returned by the previous
+         *                             dequeue.
          * @return Current {@link Factory} instance.
          * @throws NullPointerException if {@code pollPeriod} is {@code null}.
          */
-        public Factory withPollPeriod(Duration pollPeriod) {
-            this.pollPeriod = Objects.requireNonNull(pollPeriod);
+        public Factory withWaitAfterEmptyDequeue(Duration waitAfterEmptyDequeue) {
+            this.waitAfterEmptyDequeue = Objects.requireNonNull(waitAfterEmptyDequeue);
             return this;
         }
 
@@ -342,7 +343,7 @@ public final class ConnectionManager {
             Objects.requireNonNull(script, "Redis client was not configured.");
             Objects.requireNonNull(messageConverter, "MessageConverter was not configured.");
 
-            return new ConnectionManager(script, messageConverter, pollPeriod, dequeueSize, messageHandlers);
+            return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, dequeueSize, messageHandlers);
         }
     }
 }
