@@ -23,8 +23,7 @@ public interface MessageSender<T> {
      * {@link MessageHandler} is processing the message. The message becomes visible again after this time
      * if the handler fails to handle the message.
      * @param message The message payload.
-     * @return {@code true} if the message was successfully enqueued.<br>
-     * {@code false} if an existing message has the same key.
+     * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
-    boolean send(String tenant, Duration invisiblePeriod, T message);
+    EnqueueResult send(String tenant, Duration invisiblePeriod, T message);
 }

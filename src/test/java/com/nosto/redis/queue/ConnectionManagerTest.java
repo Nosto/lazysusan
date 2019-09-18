@@ -66,15 +66,15 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
         MessageSender<Child1Pojo> m1Sender = connectionManager.createSender("q1", m -> "m1_" + m.getPropertyA());
 
-        assertTrue(m1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
-        assertTrue(m1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a2", "b2")));
-        assertTrue(m1Sender.send("t2", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
+        assertEquals(EnqueueResult.SUCCESS, m1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
+        assertEquals(EnqueueResult.SUCCESS, m1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a2", "b2")));
+        assertEquals(EnqueueResult.SUCCESS, m1Sender.send("t2", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
 
         MessageSender<Child2Pojo> m2Sender = connectionManager.createSender("q1", m -> "m2_" + m.getPropertyA());
 
-        assertTrue(m2Sender.send("t1", INVISIBLE_DURATION, new Child2Pojo("a1", "b1")));
-        assertTrue(m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a1", "b1")));
-        assertTrue(m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a2", "b2")));
+        assertEquals(EnqueueResult.SUCCESS, m2Sender.send("t1", INVISIBLE_DURATION, new Child2Pojo("a1", "b1")));
+        assertEquals(EnqueueResult.SUCCESS, m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a1", "b1")));
+        assertEquals(EnqueueResult.SUCCESS, m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a2", "b2")));
 
         verifyMessageHandlerAddedToPoller(c1Handler);
         verifyMessagesReceived(Child1Pojo.class, c1Handler, "t1", new Child1Pojo("a1", "b1"),
@@ -108,7 +108,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
         MessageSender<ParentPojo> messageSender = connectionManager.createSender("q", ParentPojo::getPropertyA);
 
-        assertTrue(messageSender.send("t", INVISIBLE_DURATION, message));
+        assertEquals(EnqueueResult.SUCCESS, messageSender.send("t", INVISIBLE_DURATION, message));
 
         verifyMessageHandlerAddedToPoller(handler);
         verifyMessagesReceived(ParentPojo.class, handler, "t", message);
