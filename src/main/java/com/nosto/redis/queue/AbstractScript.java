@@ -39,11 +39,10 @@ abstract class AbstractScript {
      * @param invisiblePeriod When the message becomes visible if the tenant does not have earlier messages in queue.
      * @param queue The name of the queue.
      * @param tenantMessage The message to be added.
-     * @return true if the message was added, false if it was a duplicate
-     * @throws IllegalArgumentException if {@link TenantMessage#getKey()} contains
+     * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
-    public boolean enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
-        return TRUE_RESPONSE.equals(call(Function.ENQUEUE,
+    public EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
+        boolean result = TRUE_RESPONSE.equals(call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
                 bytes(now.toEpochMilli()),
@@ -51,6 +50,12 @@ abstract class AbstractScript {
                 bytes(tenantMessage.getTenant()),
                 bytes(tenantMessage.getKey()),
                 tenantMessage.getPayload()));
+
+        if (result) {
+            return EnqueueResult.SUCCESS;
+        }
+
+        return EnqueueResult.DUPLICATE_OVERWRITTEN;
     }
 
     /**
