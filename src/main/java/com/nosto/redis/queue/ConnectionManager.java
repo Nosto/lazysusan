@@ -105,8 +105,8 @@ public final class ConnectionManager {
                 String queueName = entry.getKey();
                 List<MessageHandler<?>> queueMessageHandlers = entry.getValue();
 
-                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize, waitAfterEmptyDequeue,
-                        queueMessageHandlers, random);
+                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize,
+                        waitAfterEmptyDequeue, queueMessageHandlers, random);
 
                 LOGGER.debug("Scheduling poller for queue '{}'", queueName);
 
@@ -244,7 +244,7 @@ public final class ConnectionManager {
          * @param waitAfterEmptyDequeue The {@link Duration} to wait if no messages were returned by the previous
          *                             dequeue.
          * @return Current {@link Factory} instance.
-         * @throws NullPointerException if {@code pollPeriod} is {@code null}.
+         * @throws NullPointerException if {@code waitAfterEmptyDequeue} is {@code null}.
          */
         public Factory withWaitAfterEmptyDequeue(Duration waitAfterEmptyDequeue) {
             this.waitAfterEmptyDequeue = Objects.requireNonNull(waitAfterEmptyDequeue);
