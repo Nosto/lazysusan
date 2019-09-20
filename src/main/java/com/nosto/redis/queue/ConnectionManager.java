@@ -64,7 +64,7 @@ public final class ConnectionManager {
         this.messageConverter = messageConverter;
         this.dequeueSize = dequeueSize;
         this.waitAfterEmptyDequeue = waitAfterEmptyDequeue;
-        this.messageHandlers = messageHanders;
+        this.messageHandlers = messageHandlers;
         this.messageHandlersThreadFactory = messageHandlersThreadFactory;
 
         this.runningPollers = new ArrayList<>(this.messageHandlers.size());
@@ -361,7 +361,8 @@ public final class ConnectionManager {
             Objects.requireNonNull(script, "Redis client was not configured.");
             Objects.requireNonNull(messageConverter, "MessageConverter was not configured.");
 
-            return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, dequeueSize, messageHandlers);
+            return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, dequeueSize, messageHandlers,
+                    messageHandlersThreadFactory);
         }
     }
 }
