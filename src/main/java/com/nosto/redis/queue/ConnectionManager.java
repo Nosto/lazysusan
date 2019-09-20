@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -47,7 +48,8 @@ public final class ConnectionManager {
     private final int dequeueSize;
     private final Duration waitAfterEmptyDequeue;
     private final Map<String, List<MessageHandler<?>>> messageHandlers;
-    private List<QueuePoller> runningPollers;
+    private final ThreadFactory messageHandlersThreadFactory;
+    private final List<QueuePoller> runningPollers;
     private final ReentrantLock startUpShutdownLock;
 
     private ExecutorService queuePollerThreadPool;
@@ -56,14 +58,16 @@ public final class ConnectionManager {
                               MessageConverter messageConverter,
                               Duration waitAfterEmptyDequeue,
                               int dequeueSize,
-                              Map<String, List<MessageHandler<?>>> messageHanders) {
+                              Map<String, List<MessageHandler<?>>> messageHandlers,
+                              ThreadFactory messageHandlersThreadFactory) {
         this.script = script;
         this.messageConverter = messageConverter;
         this.dequeueSize = dequeueSize;
         this.waitAfterEmptyDequeue = waitAfterEmptyDequeue;
-        this.messageHandlers = messageHanders;
+        this.messageHandlers = messageHandlers;
+        this.messageHandlersThreadFactory = messageHandlersThreadFactory;
 
-        this.runningPollers = new ArrayList<>(messageHandlers.size());
+        this.runningPollers = new ArrayList<>(this.messageHandlers.size());
         this.startUpShutdownLock = new ReentrantLock();
     }
 
@@ -98,7 +102,8 @@ public final class ConnectionManager {
                 throw new IllegalStateException("Already shut down.");
             }
 
-            this.queuePollerThreadPool = Executors.newFixedThreadPool(messageHandlers.size());
+            this.queuePollerThreadPool = Executors.newFixedThreadPool(messageHandlers.size(),
+                    messageHandlersThreadFactory);
 
             Random random = new Random();
             for (Map.Entry<String, List<MessageHandler<?>>> entry : messageHandlers.entrySet()) {
@@ -191,6 +196,7 @@ public final class ConnectionManager {
         private int dequeueSize = DEFAULT_DEQUEUE_SIZE;
         private MessageConverter messageConverter;
         private Map<String, List<MessageHandler<?>>> messageHandlers = new HashMap<>();
+        private ThreadFactory messageHandlersThreadFactory = Executors.defaultThreadFactory();
 
         private Factory() {
         }
@@ -335,6 +341,18 @@ public final class ConnectionManager {
         }
 
         /**
+         * Set the {@link ThreadFactory} to be used for creating threads that delegate to the message handlers.
+         * Default value is {@link Executors#defaultThreadFactory()}.
+         * @param messageHandlersThreadFactory The {@link ThreadFactory} to be used for message handlers.
+         * @return Current {@link Factory} instance.
+         * @throws NullPointerException if {@code messageHandlersThreadFactory} is {@code null}.
+         */
+        public Factory withMessageHandlersThreadFactory(ThreadFactory messageHandlersThreadFactory) {
+            this.messageHandlersThreadFactory = Objects.requireNonNull(messageHandlersThreadFactory);
+            return this;
+        }
+
+        /**
          * @return A new instance of {@link ConnectionManager}.
          * @throws NullPointerException if a client was not configured.
          * @throws NullPointerException if a message converter was not configured.
@@ -343,7 +361,8 @@ public final class ConnectionManager {
             Objects.requireNonNull(script, "Redis client was not configured.");
             Objects.requireNonNull(messageConverter, "MessageConverter was not configured.");
 
-            return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, dequeueSize, messageHandlers);
+            return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, dequeueSize, messageHandlers,
+                    messageHandlersThreadFactory);
         }
     }
 }
