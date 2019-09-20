@@ -31,7 +31,7 @@ class QueuePoller implements Runnable {
     private final MessageConverter messageConverter;
     private final String queueName;
     private final int dequeueSize;
-    private final Duration pollPeriod;
+    private final Duration waitAfterEmptyDequeue;
     private final Map<Class<?>, MessageHandler<?>> messageHandlers;
     private final Random random;
     private boolean stop;
@@ -40,14 +40,14 @@ class QueuePoller implements Runnable {
                 MessageConverter messageConverter,
                 String queueName,
                 int dequeueSize,
-                Duration pollPeriod,
+                Duration waitAfterEmptyDequeue,
                 List<MessageHandler<?>> messageHandlers,
                 Random random) {
         this.redis = redis;
         this.messageConverter = messageConverter;
         this.queueName = queueName;
         this.dequeueSize = dequeueSize;
-        this.pollPeriod = pollPeriod;
+        this.waitAfterEmptyDequeue = waitAfterEmptyDequeue;
         this.messageHandlers = messageHandlers.stream()
                 .collect(Collectors.toMap(MessageHandler::getMessageClass, Function.identity()));
         this.random = random;
@@ -58,7 +58,7 @@ class QueuePoller implements Runnable {
         while (!stop) {
             try {
                 if (poll() == 0) {
-                    long sleepMS = pollPeriod.toMillis() + Math.abs(random.nextInt(RANDOM_BOUND));
+                    long sleepMS = waitAfterEmptyDequeue.toMillis() + Math.abs(random.nextInt(RANDOM_BOUND));
                     LOGGER.debug("Received zero messages in last poll. Sleeping for {}ms.", sleepMS);
 
                     TimeUnit.MILLISECONDS.sleep(sleepMS);
