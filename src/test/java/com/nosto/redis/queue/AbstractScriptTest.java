@@ -46,7 +46,7 @@ public abstract class AbstractScriptTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> scripts() throws IOException {
         return Arrays.asList(new Object[][] {
-                {"single", singleJedis, new SingleNodeScript(singleJedis.getJedis())},
+                {"single", singleJedis, new SingleNodeScript(singleJedis.getJedisPool(), 0)},
                 {"cluster", jedisCluster, new ClusterScript(jedisCluster.getJedisCluster(), 12)}});
     }
 

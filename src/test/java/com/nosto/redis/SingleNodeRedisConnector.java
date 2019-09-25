@@ -12,20 +12,23 @@ package com.nosto.redis;
 import org.junit.rules.ExternalResource;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 public class SingleNodeRedisConnector extends ExternalResource implements RedisConnector {
-    private final Jedis jedis;
+    private final JedisPool jedisPool;
 
     public SingleNodeRedisConnector() {
-        jedis = new Jedis("redis.dev.nos.to", 6379);
+        jedisPool = new JedisPool("redis.dev.nos.to", 6379);
     }
 
-    public Jedis getJedis() {
-        return jedis;
+    public JedisPool getJedisPool() {
+        return jedisPool;
     }
 
     @Override
     public void flush() {
-        jedis.flushDB();
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.flushDB();
+        }
     }
 }

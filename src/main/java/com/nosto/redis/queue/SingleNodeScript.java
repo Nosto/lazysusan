@@ -14,16 +14,21 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
-import redis.clients.jedis.BinaryScriptingCommands;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 class SingleNodeScript extends AbstractScript {
     private static final byte[] SLOT = new byte[] {};
-    private final BinaryScriptingCommands jedis;
+
+    private final JedisPool jedisPool;
+    private final int dbIndex;
     private final byte[] sha;
 
-    SingleNodeScript(BinaryScriptingCommands jedis) throws IOException {
-        this.jedis = jedis;
-        sha = jedis.scriptLoad(loadScript());
+    SingleNodeScript(JedisPool jedisPool, int dbIndex) throws IOException {
+        this.jedisPool = jedisPool;
+        this.dbIndex = dbIndex;
+        byte[] loadedScript = loadScript();
+        sha = executeJedis(jedis -> jedis.scriptLoad(loadedScript));
     }
 
     @Override
@@ -44,11 +49,18 @@ class SingleNodeScript extends AbstractScript {
 
     @Override
     Object evalsha(List<byte[]> keys, List<byte[]> args) {
-        return jedis.evalsha(sha, Collections.emptyList(), args);
+        return executeJedis(jedis -> jedis.evalsha(sha, Collections.emptyList(), args));
     }
 
     @Override
     byte[] slot(String tenant) {
         return SLOT;
+    }
+
+    private <R> R executeJedis(java.util.function.Function<Jedis, R> jedisFunction) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.select(dbIndex);
+            return jedisFunction.apply(jedis);
+        }
     }
 }

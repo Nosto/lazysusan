@@ -92,6 +92,30 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         stopConnectionManager();
     }
 
+    @Test
+    public void receivedMessagesTwoQueues() throws Exception {
+        MessageHandler<Child1Pojo> c1Handler = createMockMessageHandler(Child1Pojo.class);
+
+        configureAndStartConnectionManager(f -> f
+                .withMessageHandlers("q1", c1Handler)
+                .withMessageHandlers("q2", c1Handler));
+
+        MessageSender<Child1Pojo> q1Sender = connectionManager.createSender("q1", m -> "m1_" + m.getPropertyA());
+        MessageSender<Child1Pojo> q2Sender = connectionManager.createSender("q2", m -> "m1_" + m.getPropertyA());
+
+        assertEquals(EnqueueResult.SUCCESS, q1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
+        assertEquals(EnqueueResult.SUCCESS, q2Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
+
+        verifyMessageHandlerAddedToPoller(c1Handler);
+        verifyMessagesReceived(Child1Pojo.class, c1Handler, "t1",
+                new Child1Pojo("a1", "b1"),
+                new Child1Pojo("a1", "b1"));
+
+        verifyNoMoreInteractions(c1Handler);
+
+        stopConnectionManager();
+    }
+
     /**
      * Message becomes visible again if message handler throws exception while handling.
      */
