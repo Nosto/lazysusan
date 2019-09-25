@@ -64,10 +64,9 @@ class QueuePoller implements Runnable {
                     TimeUnit.MILLISECONDS.sleep(sleepMS);
                 }
             } catch (InterruptedException e) {
-                LOGGER.warn("Got interrupted while sleeping. Stopping.", e);
-                stop = true;
+                LOGGER.warn("Got interrupted while sleeping. Continuing.", e);
             } catch (Exception e) {
-                LOGGER.error("Error while polling. Continuing", e);
+                LOGGER.error("Error while polling. Continuing.", e);
             }
         }
     }
@@ -97,5 +96,14 @@ class QueuePoller implements Runnable {
         }
 
         return messages.size();
+    }
+
+    @Override
+    public String toString() {
+        return "QueuePoller{" +
+                "queueName='" + queueName + '\'' +
+                ", dequeueSize=" + dequeueSize +
+                ", stop=" + stop +
+                '}';
     }
 }
