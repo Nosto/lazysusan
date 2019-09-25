@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nosto.redis.queue.jackson.PolymorphicJacksonMessageConverter;
 
 import redis.clients.jedis.BinaryJedisCluster;
-import redis.clients.jedis.BinaryScriptingCommands;
+import redis.clients.jedis.JedisPool;
 
 /**
  * A class for enqueuing and for polling for messages.
@@ -136,8 +136,8 @@ public final class ConnectionManager {
                 return true;
             }
 
-            queuePollerThreadPool.shutdown();
             runningPollers.forEach(QueuePoller::stop);
+            queuePollerThreadPool.shutdown();
             return queuePollerThreadPool.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } finally {
             startUpShutdownLock.unlock();
@@ -204,14 +204,20 @@ public final class ConnectionManager {
         /**
          * Connect to a single instance.
          * @param redisClient The client for connecting to the single Redis node.
+         * @param dbIndex The db to select before excecuting commands
          * @return Current {@link Factory} instance.
          * @throws NullPointerException if {@code redisClient} is {@code null}.
+         * @throws IllegalArgumentException if {@code dbIndex} is less than zero.
          */
-        public Factory withClient(BinaryScriptingCommands redisClient) {
+        public Factory withClient(JedisPool redisClient, int dbIndex) {
             Objects.requireNonNull(redisClient);
 
+            if (dbIndex < 0) {
+                throw new IllegalArgumentException("dbIndex must greater or equal to zero: " + dbIndex);
+            }
+
             try {
-                return withScript(new SingleNodeScript(redisClient));
+                return withScript(new SingleNodeScript(redisClient, dbIndex));
             } catch (IOException e) {
                 throw new IllegalStateException("Cannot connect.", e);
             }
