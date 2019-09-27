@@ -90,9 +90,14 @@ class QueuePoller implements Runnable {
             MessageHandler handler = messageHandlers.get(payload.getClass());
             Objects.requireNonNull(handler, "No handler found for payload " + payload.getClass());
 
-            handler.handleMessage(message.getTenant(), payload);
+            try {
+                MessageHandler.CompletionNotifier notifier = () ->
+                        redis.ack(queueName, message.getTenant(), message.getKey());
 
-            redis.ack(queueName, message.getTenant(), message.getKey());
+                handler.handleMessage(message.getTenant(), payload, notifier);
+            } catch (Exception e) {
+                LOGGER.error("Error handling message.", e);
+            }
         }
 
         return messages.size();

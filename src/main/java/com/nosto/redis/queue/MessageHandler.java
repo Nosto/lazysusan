@@ -19,11 +19,23 @@ public interface MessageHandler<T> {
      *
      * @param tenant The message's tenant.
      * @param message The deserialized message payload.
+     * @param completionNotifier Call {@link CompletionNotifier#completed()} after message handling has completed
+     *                           successfully.
      */
-    void handleMessage(String tenant, T message);
+    void handleMessage(String tenant, T message, CompletionNotifier completionNotifier);
 
     /**
      * @return The {@link Class} that this implementation handles.
      */
     Class<T> getMessageClass();
+
+    /**
+     * Allows the {@link MessageHandler} to notify that the message handling has completed successfully.
+     */
+    interface CompletionNotifier {
+        /**
+         * Message has been handled successfully and can be safely deleted from the queue.
+         */
+        void completed();
+    }
 }
