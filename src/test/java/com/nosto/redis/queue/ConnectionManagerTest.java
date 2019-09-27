@@ -132,6 +132,19 @@ public class ConnectionManagerTest extends AbstractScriptTest {
             cf.completeExceptionally(new RuntimeException("Oops!"));
         });
 
+        testRetry(handler);
+    }
+
+    @Test
+    public void retryWhenNotCompleted() throws Exception {
+        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, cf -> {
+            // do nothing
+        });
+
+        testRetry(handler);
+    }
+
+    private void testRetry(MessageHandler<ParentPojo> handler) throws Exception {
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q", handler));
 
         ParentPojo message = new ParentPojo("a");
