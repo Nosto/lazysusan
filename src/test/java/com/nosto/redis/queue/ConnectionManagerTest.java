@@ -14,9 +14,8 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -28,6 +27,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -37,7 +37,6 @@ import org.junit.After;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.nosto.redis.queue.MessageHandler.CompletionNotifier;
 import com.nosto.redis.queue.model.Child1Pojo;
 import com.nosto.redis.queue.model.Child2Pojo;
 import com.nosto.redis.queue.model.ParentPojo;
@@ -64,10 +63,10 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     @Test
     public void receivedMessages() throws Exception {
         MessageHandler<Child1Pojo> c1Handler =
-                createMockMessageHandler(Child1Pojo.class, CompletionNotifier::completed);
+                createMockMessageHandler(Child1Pojo.class, cf -> cf.complete(null));
 
         MessageHandler<Child2Pojo> c2Handler =
-                createMockMessageHandler(Child2Pojo.class, CompletionNotifier::completed);
+                createMockMessageHandler(Child2Pojo.class, cf -> cf.complete(null));
 
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", c1Handler, c2Handler));
 
@@ -102,7 +101,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     @Test
     public void receivedMessagesTwoQueues() throws Exception {
         MessageHandler<Child1Pojo> c1Handler =
-                createMockMessageHandler(Child1Pojo.class, CompletionNotifier::completed);
+                createMockMessageHandler(Child1Pojo.class, cf -> cf.complete(null));
 
         configureAndStartConnectionManager(f -> f
                 .withMessageHandlers("q1", c1Handler)
@@ -129,27 +128,13 @@ public class ConnectionManagerTest extends AbstractScriptTest {
      */
     @Test
     public void retryOnError() throws Exception {
-        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, (completionNotifier) -> {
-            throw new RuntimeException("Oops!");
+        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, cf -> {
+            cf.completeExceptionally(new RuntimeException("Oops!"));
         });
 
-        testRetry(handler);
-    }
-
-    @Test
-    public void retryWhenNotAcknowledged() throws Exception {
-        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, (completionNotifier) -> { });
-
-        testRetry(handler);
-    }
-
-    private void testRetry(MessageHandler<ParentPojo> handler) throws Exception {
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q", handler));
 
         ParentPojo message = new ParentPojo("a");
-
-        doThrow(new RuntimeException("Ooops"))
-                .when(handler).handleMessage(eq("t"), eq(message), any());
 
         MessageSender<ParentPojo> messageSender = connectionManager.createSender("q", ParentPojo::getPropertyA);
 
@@ -171,7 +156,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
      */
     @Test
     public void handlerForQueue() throws Exception {
-        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, CompletionNotifier::completed);
+        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, cf -> cf.complete(null));
 
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
 
@@ -202,7 +187,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
     @Test
     public void startupTwice() throws Exception {
-        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, CompletionNotifier::completed);
+        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, cf -> cf.complete(null));
 
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
 
@@ -217,7 +202,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
     @Test
     public void startupAfterShutdown() throws Exception {
-        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, CompletionNotifier::completed);
+        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, cf -> cf.complete(null));
 
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
 
@@ -232,7 +217,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
     @Test
     public void shutdownNow() {
-        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, CompletionNotifier::completed);
+        MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class, cf -> cf.complete(null));
 
         configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
 
@@ -242,8 +227,8 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
     @Test
     public void duplicateMessageHandlerClass() {
-        MessageHandler<ParentPojo> handler1 = createMockMessageHandler(ParentPojo.class, CompletionNotifier::completed);
-        MessageHandler<ParentPojo> handler2 = createMockMessageHandler(ParentPojo.class, CompletionNotifier::completed);
+        MessageHandler<ParentPojo> handler1 = createMockMessageHandler(ParentPojo.class, cf -> cf.complete(null));
+        MessageHandler<ParentPojo> handler2 = createMockMessageHandler(ParentPojo.class, cf -> cf.complete(null));
 
         try {
             configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler1, handler2));
@@ -281,7 +266,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         ArgumentCaptor<T> messageCaptor = ArgumentCaptor.forClass(c);
 
         verify(mockMessageHandler, timeout(SHUTDOWN_DURATION.toMillis()).times(expectedMessages.length))
-                .handleMessage(eq(expectedTenant), messageCaptor.capture(), any());
+                .handleMessage(eq(expectedTenant), messageCaptor.capture());
 
         assertEquals(new HashSet<>(Arrays.asList(expectedMessages)), new HashSet<>(messageCaptor.getAllValues()));
     }
@@ -292,16 +277,17 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     }
 
     private <T> MessageHandler<T> createMockMessageHandler(Class<T> c,
-                                                           Consumer<CompletionNotifier> completionNotifierConsumer) {
+                                                           Consumer<CompletableFuture<?>> completableFutureConsumer) {
         MessageHandler messageHandler = mock(MessageHandler.class);
 
         when(messageHandler.getMessageClass()).thenReturn(c);
 
-        doAnswer(invocation -> {
-            CompletionNotifier notifier = invocation.getArgument(2, CompletionNotifier.class);
-            completionNotifierConsumer.accept(notifier);
-            return null;
-        }).when(messageHandler).handleMessage(any(String.class), any(c), any(CompletionNotifier.class));
+        when(messageHandler.handleMessage(anyString(), any(c)))
+                .thenAnswer(invocation -> {
+                    CompletableFuture<?> completableFuture = new CompletableFuture<>();
+                    completableFutureConsumer.accept(completableFuture);
+                    return completableFuture;
+                });
 
         return messageHandler;
     }
