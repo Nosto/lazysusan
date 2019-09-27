@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -91,8 +92,11 @@ class QueuePoller implements Runnable {
             Objects.requireNonNull(handler, "No handler found for payload " + payload.getClass());
 
             try {
-                handler.handleMessage(message.getTenant(), payload)
-                        .thenAccept(result -> redis.ack(queueName, message.getTenant(), message.getKey()));
+                CompletionStage handledMessageStage = handler.handleMessage(message.getTenant(), payload);
+                Objects.requireNonNull(handledMessageStage,
+                        String.format("MessageHandler must return %s: %s", CompletionStage.class, handler));
+
+                handledMessageStage.thenAccept(result -> redis.ack(queueName, message.getTenant(), message.getKey()));
             } catch (Exception e) {
                 LOGGER.error("Error handling message.", e);
             }
