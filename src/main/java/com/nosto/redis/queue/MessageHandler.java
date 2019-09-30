@@ -9,8 +9,6 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.util.concurrent.CompletionStage;
-
 /**
  * Handle dequeued messages.
  * @param <T>
@@ -21,9 +19,8 @@ public interface MessageHandler<T> {
      *
      * @param tenant The message's tenant.
      * @param message The deserialized message payload.
-     * @return The {@code message} is removed from the queue when the {@link CompletionStage} completes successfully.
      */
-    CompletionStage<?> handleMessage(String tenant, T message);
+    void handleMessage(String tenant, T message);
 
     /**
      * @return The {@link Class} that this implementation handles.

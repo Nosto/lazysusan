@@ -21,7 +21,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -45,10 +44,8 @@ public final class ConnectionManager {
 
     private final AbstractScript script;
     private final MessageConverter messageConverter;
-    private final int dequeueSize;
     private final Duration waitAfterEmptyDequeue;
-    private final Map<String, List<MessageHandler<?>>> messageHandlers;
-    private final ThreadFactory messageHandlersThreadFactory;
+    private Map<String, MessageHandlers> messageHandlers;
     private final List<QueuePoller> runningPollers;
     private final ReentrantLock startUpShutdownLock;
 
@@ -57,15 +54,11 @@ public final class ConnectionManager {
     private ConnectionManager(AbstractScript script,
                               MessageConverter messageConverter,
                               Duration waitAfterEmptyDequeue,
-                              int dequeueSize,
-                              Map<String, List<MessageHandler<?>>> messageHandlers,
-                              ThreadFactory messageHandlersThreadFactory) {
+                              Map<String, MessageHandlers> messageHandlers) {
         this.script = script;
         this.messageConverter = messageConverter;
-        this.dequeueSize = dequeueSize;
         this.waitAfterEmptyDequeue = waitAfterEmptyDequeue;
         this.messageHandlers = messageHandlers;
-        this.messageHandlersThreadFactory = messageHandlersThreadFactory;
 
         this.runningPollers = new ArrayList<>(this.messageHandlers.size());
         this.startUpShutdownLock = new ReentrantLock();
@@ -102,16 +95,16 @@ public final class ConnectionManager {
                 throw new IllegalStateException("Already shut down.");
             }
 
-            this.queuePollerThreadPool = Executors.newFixedThreadPool(messageHandlers.size(),
-                    messageHandlersThreadFactory);
+            this.queuePollerThreadPool = Executors.newFixedThreadPool(messageHandlers.size());
 
             Random random = new Random();
-            for (Map.Entry<String, List<MessageHandler<?>>> entry : messageHandlers.entrySet()) {
+            for (Map.Entry<String, MessageHandlers> entry : messageHandlers.entrySet()) {
                 String queueName = entry.getKey();
-                List<MessageHandler<?>> queueMessageHandlers = entry.getValue();
+                int messageHandlerWorkers = entry.getValue().messageHandlerWorkers;
+                List<MessageHandler<?>> messageHandlers = entry.getValue().messageHandlers;
 
-                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, dequeueSize,
-                        waitAfterEmptyDequeue, queueMessageHandlers, random);
+                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, messageHandlerWorkers,
+                        waitAfterEmptyDequeue, messageHandlers, random);
 
                 LOGGER.debug("Scheduling poller for queue '{}'", queueName);
 
@@ -136,7 +129,7 @@ public final class ConnectionManager {
                 return true;
             }
 
-            runningPollers.forEach(QueuePoller::stop);
+            runningPollers.forEach(queuePoller -> queuePoller.shutdown(timeout));
             queuePollerThreadPool.shutdown();
             return queuePollerThreadPool.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } finally {
@@ -155,7 +148,7 @@ public final class ConnectionManager {
                 return Collections.emptyList();
             }
 
-            runningPollers.forEach(QueuePoller::stop);
+            runningPollers.forEach(QueuePoller::shutdownNow);
             return queuePollerThreadPool.shutdownNow();
         } finally {
             startUpShutdownLock.unlock();
@@ -188,15 +181,10 @@ public final class ConnectionManager {
      * Builds a new instance of {@link ConnectionManager}.
      */
     public static final class Factory {
-        private static final long DEFAULT_POLL_DURATION = 100L;
-        private static final int DEFAULT_DEQUEUE_SIZE = 100;
-
         private AbstractScript script;
-        private Duration waitAfterEmptyDequeue = Duration.ofMillis(DEFAULT_POLL_DURATION);
-        private int dequeueSize = DEFAULT_DEQUEUE_SIZE;
+        private Duration waitAfterEmptyDequeue = Duration.ofMillis(100);
         private MessageConverter messageConverter;
-        private Map<String, List<MessageHandler<?>>> messageHandlers = new HashMap<>();
-        private ThreadFactory messageHandlersThreadFactory = Executors.defaultThreadFactory();
+        private Map<String, MessageHandlers> messageHandlers = new HashMap<>();
 
         private Factory() {
         }
@@ -264,20 +252,6 @@ public final class ConnectionManager {
         }
 
         /**
-         * @param dequeueSize The amount of messages to attempt to dequeue in each poll.
-         * @return Current {@link Factory} instance.
-         * @throws IllegalArgumentException if {@code dequeueSize} is less than or equal to zero.
-         */
-        public Factory withDequeueSize(int dequeueSize) {
-            if (dequeueSize <= 0) {
-                throw new IllegalArgumentException("dequeueSize must be positive: " + dequeueSize);
-            }
-
-            this.dequeueSize = dequeueSize;
-            return this;
-        }
-
-        /**
          * Determine how messages are serialized and deserialized.
          * Default value is an instance of {@link PolymorphicJacksonMessageConverter}.
          * @param messageConverter A {@link MessageConverter} for serializing and deserializing messages.
@@ -313,6 +287,7 @@ public final class ConnectionManager {
         /**
          * Set the message handlers for a queue.
          * @param queueName The name of the queue.
+         * @param messageHandlerWorkers The maximum number of {@link MessageHandler}s to run parallel.
          * @param messageHandlers The handlers for handling messages from the queue. At least one must be defined.
          * @return Current {@link Factory} instance.
          * @throws NullPointerException if {@code queueName} is {@code null}.
@@ -321,11 +296,17 @@ public final class ConnectionManager {
          * @throws IllegalArgumentException if more than one {@link MessageHandler} returns the same class
          * for {@link MessageHandler#getMessageClass()}
          */
-        public Factory withMessageHandlers(String queueName, MessageHandler<?>... messageHandlers) {
+        public Factory withMessageHandlers(String queueName,
+                                           int messageHandlerWorkers,
+                                           MessageHandler<?>... messageHandlers) {
             queueName = Objects.requireNonNull(queueName).trim();
 
             if (this.messageHandlers.containsKey(queueName)) {
                 throw new IllegalArgumentException("Message handlers have already been set for " + queueName);
+            }
+
+            if (messageHandlerWorkers <= 0) {
+                throw new IllegalArgumentException("messageHandlerWorkers must be positive: " + messageHandlerWorkers);
             }
 
             if (messageHandlers.length == 0) {
@@ -342,19 +323,7 @@ public final class ConnectionManager {
                         }
                     });
 
-            this.messageHandlers.put(queueName, Arrays.asList(messageHandlers));
-            return this;
-        }
-
-        /**
-         * Set the {@link ThreadFactory} to be used for creating threads that delegate to the message handlers.
-         * Default value is {@link Executors#defaultThreadFactory()}.
-         * @param messageHandlersThreadFactory The {@link ThreadFactory} to be used for message handlers.
-         * @return Current {@link Factory} instance.
-         * @throws NullPointerException if {@code messageHandlersThreadFactory} is {@code null}.
-         */
-        public Factory withMessageHandlersThreadFactory(ThreadFactory messageHandlersThreadFactory) {
-            this.messageHandlersThreadFactory = Objects.requireNonNull(messageHandlersThreadFactory);
+            this.messageHandlers.put(queueName, new MessageHandlers(messageHandlerWorkers, messageHandlers));
             return this;
         }
 
@@ -367,8 +336,17 @@ public final class ConnectionManager {
             Objects.requireNonNull(script, "Redis client was not configured.");
             Objects.requireNonNull(messageConverter, "MessageConverter was not configured.");
 
-            return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, dequeueSize, messageHandlers,
-                    messageHandlersThreadFactory);
+            return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, messageHandlers);
+        }
+    }
+
+    private static final class MessageHandlers {
+        private final int messageHandlerWorkers;
+        private final List<MessageHandler<?>> messageHandlers;
+
+        private MessageHandlers(int messageHandlerWorkers, MessageHandler<?>... messageHandlers) {
+            this.messageHandlerWorkers = messageHandlerWorkers;
+            this.messageHandlers = Arrays.asList(messageHandlers);
         }
     }
 }

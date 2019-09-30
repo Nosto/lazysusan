@@ -41,6 +41,7 @@ function public.dequeue(slot, queue, time, maxkeys)
                 result[#result + 1] = tenant
                 result[#result + 1] = key
                 result[#result + 1] = payload
+                result[#result + 1] = nexttime - time
                 redis.call("zadd", schedule_key, nexttime, tenant)
             end
         else
@@ -50,6 +51,7 @@ function public.dequeue(slot, queue, time, maxkeys)
             result[#result + 1] = tenant
             result[#result + 1] = key
             result[#result + 1] = payload
+            result[#result + 1] = nexttime - time
         end
     end
     return result

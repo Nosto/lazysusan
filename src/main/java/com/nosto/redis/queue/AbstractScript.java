@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.io.IOUtils;
 
@@ -36,17 +37,16 @@ abstract class AbstractScript {
      * Adds a message to a queue.
      *
      * @param now Time now
-     * @param invisiblePeriod When the message becomes visible if the tenant does not have earlier messages in queue.
      * @param queue The name of the queue.
      * @param tenantMessage The message to be added.
      * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
-    public EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
+    public EnqueueResult enqueue(Instant now, String queue, TenantMessage tenantMessage) {
         boolean result = TRUE_RESPONSE.equals(call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
                 bytes(now.toEpochMilli()),
-                bytes(now.plus(invisiblePeriod).toEpochMilli()),
+                bytes(now.plus(tenantMessage.getInvisiblePeriod()).toEpochMilli()),
                 bytes(tenantMessage.getTenant()),
                 bytes(tenantMessage.getKey()),
                 tenantMessage.getPayload()));
@@ -120,9 +120,13 @@ abstract class AbstractScript {
 
     static List<TenantMessage> unpackTenantMessage(List<byte[]> response) {
         ArrayList<TenantMessage> result = new ArrayList<>(response.size() >> 1);
-        Iterator<byte[]> it = response.iterator();
+        Iterator<?> it = response.iterator();
         while (it.hasNext()) {
-            result.add(new TenantMessage(new String(it.next()), new String(it.next()), it.next()));
+            result.add(new TenantMessage(
+                    new String((byte[]) it.next()),
+                    new String((byte[]) it.next()),
+                    (byte[]) it.next(),
+                    Duration.ofMillis((Long) it.next())));
         }
         return result;
     }
@@ -161,11 +165,13 @@ abstract class AbstractScript {
         private final String tenant;
         private final String key;
         private final byte[] payload;
+        private final Duration invisiblePeriod;
 
-        TenantMessage(String tenant, String key, byte[] payload) {
+        TenantMessage(String tenant, String key, byte[] payload, Duration invisiblePeriod) {
             this.tenant = tenant;
             this.key = key;
             this.payload = payload;
+            this.invisiblePeriod = invisiblePeriod;
         }
 
         public String getTenant() {
@@ -178,6 +184,44 @@ abstract class AbstractScript {
 
         public byte[] getPayload() {
             return payload;
+        }
+
+        public Duration getInvisiblePeriod() {
+            return invisiblePeriod;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            TenantMessage that = (TenantMessage) o;
+            return tenant.equals(that.tenant) &&
+                    key.equals(that.key) &&
+                    Arrays.equals(payload, that.payload) &&
+                    invisiblePeriod.equals(that.invisiblePeriod);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(tenant, key, invisiblePeriod);
+            result = 31 * result + Arrays.hashCode(payload);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "TenantMessage{" +
+                    "tenant='" + tenant + '\'' +
+                    ", key='" + key + '\'' +
+                    ", payload=" + Arrays.toString(payload) +
+                    ", invisiblePeriod=" + invisiblePeriod +
+                    '}';
         }
     }
 }

@@ -45,9 +45,9 @@ class MessageSenderImpl<T> implements MessageSender<T> {
             throw new IllegalArgumentException("Empty message payload.");
         }
 
-        AbstractScript.TenantMessage tenantMessage = new AbstractScript.TenantMessage(tenant, key, messagePayload);
-        LOGGER.debug("Enqueueing message tenant for '{}' and key '{}'",
-                tenant, key);
-        return redis.enqueue(Instant.now(), invisiblePeriod, queueName, tenantMessage);
+        AbstractScript.TenantMessage tenantMessage =
+                new AbstractScript.TenantMessage(tenant, key, messagePayload, invisiblePeriod);
+        LOGGER.debug("Enqueueing message tenant for '{}' and key '{}'", tenant, key);
+        return redis.enqueue(Instant.now(), queueName, tenantMessage);
     }
 }
