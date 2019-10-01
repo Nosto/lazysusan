@@ -56,10 +56,15 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(3), message);
 
         // Message becomes visible again in (2 + 3) seconds.
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(1));
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(1));
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1", Duration.ofSeconds(1));
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(1), message);
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(2), message);
+
+        // Message becomes visible again in (5 + 2) seconds.
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(6), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(7), "q1", Duration.ofSeconds(2), message);
     }
 
     @Test
