@@ -85,14 +85,15 @@ class QueuePoller implements Runnable {
     }
 
     private int poll() {
-        int availableWorkers = messageHandlerExecutor.getMaximumPoolSize() - messageHandlerExecutor.getActiveCount();
-        if (availableWorkers == 0) {
-            LOGGER.debug("All message handlers are busy.");
+        int activeMessageHandlers = messageHandlerExecutor.getActiveCount();
+        int availableMessageHandlers = messageHandlerExecutor.getMaximumPoolSize() - activeMessageHandlers;
+        if (availableMessageHandlers == 0) {
+            LOGGER.debug("All message handlers are busy: {}.", activeMessageHandlers);
             return 0;
         }
 
         List<AbstractScript.TenantMessage> messages =
-                redis.dequeue(Instant.now(), queueName, availableWorkers, afterDequeueInvisiblePeriod);
+                redis.dequeue(Instant.now(), queueName, availableMessageHandlers, afterDequeueInvisiblePeriod);
         LOGGER.debug("Dequeued {} messages for queue '{}'", messages.size(), queueName);
 
         Map<TenantMessage, CompletableFuture<Boolean>> messageAndResults = new HashMap<>(messages.size());
