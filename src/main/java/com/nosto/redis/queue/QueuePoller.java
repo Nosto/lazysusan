@@ -96,7 +96,8 @@ class QueuePoller implements Runnable {
                 if (success) {
                     redis.ack(queueName, message.getTenant(), message.getKey());
                 } else {
-                    LOGGER.warn("Handler returned false: {}", handler);
+                    LOGGER.warn("Handler ({}) returned false for tenant '{}' and message key '{}'",
+                            handler, message.getTenant(), message.getKey());
                 }
             } catch (Exception e) {
                 LOGGER.error("Error handling message.", e);
