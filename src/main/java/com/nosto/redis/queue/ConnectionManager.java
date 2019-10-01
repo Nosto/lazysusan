@@ -12,7 +12,6 @@ package com.nosto.redis.queue;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +20,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -100,11 +100,9 @@ public final class ConnectionManager {
             Random random = new Random();
             for (Map.Entry<String, MessageHandlers> entry : messageHandlers.entrySet()) {
                 String queueName = entry.getKey();
-                int messageHandlerWorkers = entry.getValue().messageHandlerWorkers;
-                List<MessageHandler<?>> messageHandlers = entry.getValue().messageHandlers;
 
-                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, messageHandlerWorkers,
-                        waitAfterEmptyDequeue, messageHandlers, random);
+                QueuePoller queuePoller = new QueuePoller(script, messageConverter, queueName, waitAfterEmptyDequeue,
+                        entry.getValue(), random);
 
                 LOGGER.debug("Scheduling poller for queue '{}'", queueName);
 
@@ -129,7 +127,7 @@ public final class ConnectionManager {
                 return true;
             }
 
-            runningPollers.forEach(queuePoller -> queuePoller.shutdown(timeout));
+            runningPollers.forEach(QueuePoller::stop);
             queuePollerThreadPool.shutdown();
             return queuePollerThreadPool.awaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } finally {
@@ -148,7 +146,7 @@ public final class ConnectionManager {
                 return Collections.emptyList();
             }
 
-            runningPollers.forEach(QueuePoller::shutdownNow);
+            runningPollers.forEach(QueuePoller::stop);
             return queuePollerThreadPool.shutdownNow();
         } finally {
             startUpShutdownLock.unlock();
@@ -287,26 +285,30 @@ public final class ConnectionManager {
         /**
          * Set the message handlers for a queue.
          * @param queueName The name of the queue.
-         * @param messageHandlerWorkers The maximum number of {@link MessageHandler}s to run parallel.
+         * @param afterDequeueInvisiblePeriod Period that messages should be invisible after they are dequeued.
+         * @param messageHandlerExecutor The {@link ThreadPoolExecutor} for executing message handlers.
          * @param messageHandlers The handlers for handling messages from the queue. At least one must be defined.
          * @return Current {@link Factory} instance.
          * @throws NullPointerException if {@code queueName} is {@code null}.
          * @throws IllegalArgumentException if {@code queueName} was already set.
+         * @throws IllegalStateException if {@code messageHandlerExecutor} has been shut down.
          * @throws IllegalStateException if no message handlers are set.
          * @throws IllegalArgumentException if more than one {@link MessageHandler} returns the same class
          * for {@link MessageHandler#getMessageClass()}
          */
         public Factory withMessageHandlers(String queueName,
-                                           int messageHandlerWorkers,
+                                           Duration afterDequeueInvisiblePeriod,
+                                           ThreadPoolExecutor messageHandlerExecutor,
                                            MessageHandler<?>... messageHandlers) {
             queueName = Objects.requireNonNull(queueName).trim();
 
-            if (this.messageHandlers.containsKey(queueName)) {
-                throw new IllegalArgumentException("Message handlers have already been set for " + queueName);
+            Objects.requireNonNull(messageHandlerExecutor);
+            if (messageHandlerExecutor.isShutdown()) {
+                throw new IllegalStateException("messageHandlerExecutor has been shut down.");
             }
 
-            if (messageHandlerWorkers <= 0) {
-                throw new IllegalArgumentException("messageHandlerWorkers must be positive: " + messageHandlerWorkers);
+            if (this.messageHandlers.containsKey(queueName)) {
+                throw new IllegalArgumentException("Message handlers have already been set for " + queueName);
             }
 
             if (messageHandlers.length == 0) {
@@ -323,7 +325,8 @@ public final class ConnectionManager {
                         }
                     });
 
-            this.messageHandlers.put(queueName, new MessageHandlers(messageHandlerWorkers, messageHandlers));
+            this.messageHandlers.put(queueName,
+                    new MessageHandlers(afterDequeueInvisiblePeriod, messageHandlerExecutor, messageHandlers));
             return this;
         }
 
@@ -340,13 +343,30 @@ public final class ConnectionManager {
         }
     }
 
-    private static final class MessageHandlers {
-        private final int messageHandlerWorkers;
-        private final List<MessageHandler<?>> messageHandlers;
+    protected static final class MessageHandlers {
+        private final Duration afterDequeueInvisiblePeriod;
+        private final ThreadPoolExecutor messageHandlerExecutor;
+        private final Map<Class<?>, MessageHandler<?>> messageHandlers;
 
-        private MessageHandlers(int messageHandlerWorkers, MessageHandler<?>... messageHandlers) {
-            this.messageHandlerWorkers = messageHandlerWorkers;
-            this.messageHandlers = Arrays.asList(messageHandlers);
+        private MessageHandlers(Duration afterDequeueInvisiblePeriod,
+                                ThreadPoolExecutor messageHandlerExecutor,
+                                MessageHandler<?>... messageHandlers) {
+            this.afterDequeueInvisiblePeriod = afterDequeueInvisiblePeriod;
+            this.messageHandlerExecutor = messageHandlerExecutor;
+            this.messageHandlers = Stream.of(messageHandlers)
+                    .collect(Collectors.toMap(MessageHandler::getMessageClass, Function.identity()));
+        }
+
+        protected Duration getAfterDequeueInvisiblePeriod() {
+            return afterDequeueInvisiblePeriod;
+        }
+
+        protected ThreadPoolExecutor getMessageHandlerExecutor() {
+            return messageHandlerExecutor;
+        }
+
+        public Map<Class<?>, MessageHandler<?>> getMessageHandlers() {
+            return messageHandlers;
         }
     }
 }

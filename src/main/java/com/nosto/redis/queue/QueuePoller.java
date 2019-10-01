@@ -11,25 +11,23 @@ package com.nosto.redis.queue;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.nosto.redis.queue.AbstractScript.TenantMessage;
+import com.nosto.redis.queue.ConnectionManager.MessageHandlers;
 
 class QueuePoller implements Runnable {
     private static final Logger LOGGER = LogManager.getLogger(QueuePoller.class);
@@ -39,34 +37,33 @@ class QueuePoller implements Runnable {
     private final AbstractScript redis;
     private final MessageConverter messageConverter;
     private final String queueName;
-    private final ThreadPoolExecutor messageHandlerExecutor;
     private final Duration waitAfterEmptyDequeue;
+    private final Duration afterDequeueInvisiblePeriod;
+    private final ThreadPoolExecutor messageHandlerExecutor;
     private final Map<Class<?>, MessageHandler<?>> messageHandlers;
     private final Random random;
-    private Duration shutdownTimeout;
+
+    private boolean stop;
 
     QueuePoller(AbstractScript redis,
                 MessageConverter messageConverter,
                 String queueName,
-                int messageHandlerWorkers,
                 Duration waitAfterEmptyDequeue,
-                List<MessageHandler<?>> messageHandlers,
+                MessageHandlers messageHandlers,
                 Random random) {
         this.redis = redis;
         this.messageConverter = messageConverter;
         this.queueName = queueName;
-        this.messageHandlerExecutor = new ThreadPoolExecutor(messageHandlerWorkers, messageHandlerWorkers,
-                0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>());
         this.waitAfterEmptyDequeue = waitAfterEmptyDequeue;
-        this.messageHandlers = messageHandlers.stream()
-                .collect(Collectors.toMap(MessageHandler::getMessageClass, Function.identity()));
         this.random = random;
+        this.afterDequeueInvisiblePeriod = messageHandlers.getAfterDequeueInvisiblePeriod();
+        this.messageHandlerExecutor = messageHandlers.getMessageHandlerExecutor();
+        this.messageHandlers = messageHandlers.getMessageHandlers();
     }
 
     @Override
     public void run() {
-        while (!messageHandlerExecutor.isShutdown()) {
+        while (!stop) {
             try {
                 if (poll() == 0) {
                     long sleepMS = waitAfterEmptyDequeue.toMillis() + Math.abs(random.nextInt(RANDOM_BOUND));
@@ -80,22 +77,11 @@ class QueuePoller implements Runnable {
                 LOGGER.error("Error while polling. Continuing.", e);
             }
         }
-
-        try {
-            messageHandlerExecutor.awaitTermination(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while awaiting message handlers to terminate.", e);
-        }
     }
 
-    void shutdown(Duration shutdownTimeout) {
-        LOGGER.info("Shutting down.");
-        this.shutdownTimeout = shutdownTimeout;
-        messageHandlerExecutor.shutdown();
-    }
-
-    void shutdownNow() {
-        messageHandlerExecutor.shutdownNow();
+    public void stop() {
+        LOGGER.info("Stopping.");
+        this.stop = true;
     }
 
     private int poll() {
@@ -105,10 +91,11 @@ class QueuePoller implements Runnable {
             return 0;
         }
 
-        List<AbstractScript.TenantMessage> messages = redis.dequeue(Instant.now(), queueName, availableWorkers);
+        List<AbstractScript.TenantMessage> messages =
+                redis.dequeue(Instant.now(), queueName, availableWorkers, afterDequeueInvisiblePeriod);
         LOGGER.debug("Dequeued {} messages for queue '{}'", messages.size(), queueName);
 
-        List<CompletableFuture<Void>> messageHandlerResults = new ArrayList<>(messages.size());
+        Map<TenantMessage, CompletableFuture<Boolean>> messageAndResults = new HashMap<>(messages.size());
 
         for (AbstractScript.TenantMessage message : messages) {
             LOGGER.debug("Received message for tenent '{}' and key '{}'",
@@ -120,35 +107,45 @@ class QueuePoller implements Runnable {
             MessageHandler handler = messageHandlers.get(payload.getClass());
             Objects.requireNonNull(handler, "No handler found for payload " + payload.getClass());
 
-            CompletableFuture<Void> messageHandlerResult = new CompletableFuture<>();
-            messageHandlerResults.add(messageHandlerResult);
-
-            messageHandlerExecutor.submit(() -> {
-                try {
-                    handler.handleMessage(message.getTenant(), payload);
-                    messageHandlerResult.complete(null);
-                } catch (Exception e) {
-                    messageHandlerResult.completeExceptionally(e);
-                }
-            });
-        }
-
-        for (int i = 0; i < messageHandlerResults.size(); i++) {
-            CompletionStage<Void> messageHandlerResult = messageHandlerResults.get(i);
+            CompletableFuture<Boolean> messageHandlerResult = new CompletableFuture<>();
+            messageAndResults.put(message, messageHandlerResult);
 
             try {
-                TenantMessage message = messages.get(i);
+                messageHandlerExecutor.submit(() -> {
+                   try {
+                       boolean handledSuccessfully = handler.handleMessage(message.getTenant(), payload);
+                       messageHandlerResult.complete(handledSuccessfully);
+                   } catch (Exception e) {
+                       messageHandlerResult.completeExceptionally(e);
+                   }
+                });
+            } catch (Exception e) {
+                messageHandlerResult.completeExceptionally(e);
+            }
+        }
 
-                messageHandlerResult.toCompletableFuture()
-                        .get(message.getInvisiblePeriod().toMillis(), TimeUnit.MILLISECONDS);
+        for (Entry<TenantMessage, CompletableFuture<Boolean>> messageAndResult : messageAndResults.entrySet()) {
+            TenantMessage message = messageAndResult.getKey();
+            CompletableFuture<Boolean> result = messageAndResult.getValue();
 
-                redis.ack(queueName, message.getTenant(), message.getKey());
+            try {
+                Boolean handledSuccessfully =
+                        result.get(message.getInvisiblePeriod().toMillis(), TimeUnit.MILLISECONDS);
+
+                if (Boolean.TRUE == handledSuccessfully) {
+                    redis.ack(queueName, message.getTenant(), message.getKey());
+                } else {
+                    LOGGER.warn("Message handler did not complete successfully.");
+                }
             } catch (InterruptedException e) {
-                LOGGER.error("Got interrupted while waiting for message handling to complete.", e);
+                LOGGER.error("Interrupted while waiting for message handler to complete for message key: {}",
+                        message.getKey(), e);
             } catch (ExecutionException e) {
-                LOGGER.error("Error handling message.", e);
+                LOGGER.error("Message handler failed for message key: {}",
+                        message.getKey(), e);
             } catch (TimeoutException e) {
-                LOGGER.error("Message was not handled in time.", e);
+                LOGGER.error("Message handler did not complete in time for message key: {}",
+                        message.getKey(), e);
             }
         }
 
@@ -159,7 +156,7 @@ class QueuePoller implements Runnable {
     public String toString() {
         return "QueuePoller{" +
                 "queueName='" + queueName + '\'' +
-                ", running=" + !messageHandlerExecutor.isShutdown() +
+                ", stop=" + stop +
                 '}';
     }
 }

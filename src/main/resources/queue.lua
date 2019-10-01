@@ -19,7 +19,7 @@ function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
     end
 end
 
-function public.dequeue(slot, queue, time, maxkeys)
+function public.dequeue(slot, queue, time, maxkeys, nexttime_no_ack)
     local schedule_key = private.schedule_key(slot, queue)
     local tenants = redis.call("zrangebyscore", schedule_key, "-inf", time, "LIMIT", 0, maxkeys) -- todo maxkeys
     local result = {}
@@ -42,7 +42,7 @@ function public.dequeue(slot, queue, time, maxkeys)
                 result[#result + 1] = key
                 result[#result + 1] = payload
                 result[#result + 1] = nexttime - time
-                redis.call("zadd", schedule_key, nexttime, tenant)
+                redis.call("zadd", schedule_key, nexttime_no_ack, tenant)
             end
         else
             local _, key = next(invisible)

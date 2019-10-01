@@ -27,7 +27,8 @@ import com.nosto.redis.queue.AbstractScript.TenantMessage;
 public class LowLevelScriptTest extends AbstractScriptTest {
     @Test
     public void dequeEmpty() {
-        assertEquals(Collections.emptyList(), script.dequeue(Instant.ofEpochMilli(Long.MAX_VALUE), "q1", 10));
+        assertEquals(Collections.emptyList(),
+                script.dequeue(Instant.ofEpochMilli(Long.MAX_VALUE), "q1", 10, Duration.ZERO));
     }
 
     /**
@@ -40,19 +41,25 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         TenantMessage msg =
                 new TenantMessage("t1", "foo", "bar".getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(5));
         script.enqueue(Instant.EPOCH, "q1", msg);
-        dequeueAndAssert(Instant.EPOCH, "q1");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", msg);
+        dequeueAndAssert(Instant.EPOCH, "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(2), msg);
     }
 
     @Test
     public void unackedMessageBecomesVisible() {
         TenantMessage message =
-                new TenantMessage("t1", "foo", "bar".getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(1));
+                new TenantMessage("t1", "foo", "bar".getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(2));
         script.enqueue(Instant.EPOCH, "q1", message);
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", message);
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", message);
+        // Message is visible after 2 seconds
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ofSeconds(3));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(3), message);
+
+        // Message becomes visible again in (2 + 3) seconds.
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(1));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(1));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1", Duration.ofSeconds(1));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(1), message);
     }
 
     @Test
@@ -60,9 +67,9 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         TenantMessage message =
                 new TenantMessage("t1", "foo", "bar".getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(1));
         script.enqueue(Instant.EPOCH, "q1", message);
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", message);
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ofSeconds(2), message);
         script.ack("q1", "t1", "foo");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(2));
     }
 
     @Test
@@ -75,13 +82,13 @@ public class LowLevelScriptTest extends AbstractScriptTest {
                 new TenantMessage("t1", "foo2", "bar2".getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(5));
         script.enqueue(Instant.EPOCH.plusSeconds(2), "q1", msg2);
 
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", msg1);
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(2), msg1);
 
         script.ack("q1", "t1", "foo1");
 
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(9), "q1");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(10), "q1", msg2);
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(6), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(7), "q1", Duration.ofSeconds(2), msg2);
     }
 
     @Test
@@ -105,7 +112,7 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         TenantMessage t2Msg =
                 new TenantMessage("t2", "foo1", "bar1".getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(7));
 
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(9), "q1", msg1, t2Msg, msg4);
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(9), "q1", Duration.ofSeconds(2), msg1, t2Msg, msg4);
     }
 
     @Test
@@ -139,7 +146,7 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertEquals(EnqueueResult.DUPLICATE_OVERWRITTEN,
                 script.enqueue(Instant.EPOCH, "q1", msg2));
 
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", msg2);
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(2), msg2);
     }
 
     @Test
@@ -148,7 +155,7 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         TenantMessage msg =
                 new TenantMessage("t1", "foo", payload.getBytes(StandardCharsets.UTF_8), Duration.ofSeconds(5));
         script.enqueue(Instant.EPOCH, "q1", msg);
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", msg);
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(2), msg);
     }
 
     @Test
@@ -175,7 +182,7 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertTrue(stats.getTenantStatistics().isEmpty());
 
         // Dequeueing messages makes 1 message invisible per tenant
-        List<TenantMessage> messages = script.dequeue(later, "q1", 100);
+        List<TenantMessage> messages = script.dequeue(later, "q1", 100, Duration.ZERO);
         assertEquals(2, messages.size());
 
         stats = script.getQueueStatistics("q1");
@@ -209,7 +216,7 @@ public class LowLevelScriptTest extends AbstractScriptTest {
                                  int nowMessages,
                                  Instant later,
                                  int laterMessages) {
-        Duration duration = Duration.ofMillis(1);
+        Duration duration = Duration.ofSeconds(1);
         int key = 0;
 
         for (int i = 0; i < nowMessages; i++) {
@@ -223,11 +230,11 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         }
     }
 
-    private void dequeueAndAssert(Instant now, String queue, TenantMessage... expected) {
+    private void dequeueAndAssert(Instant now, String queue, Duration invisiblePeriod, TenantMessage... expected) {
         List<TenantMessage> expectedList = Arrays.asList(expected);
         expectedList.sort(Comparator.comparing(TenantMessage::getInvisiblePeriod));
 
-        List<TenantMessage> actualList = script.dequeue(now, queue, 10);
+        List<TenantMessage> actualList = script.dequeue(now, queue, 10, invisiblePeriod);
         actualList.sort(Comparator.comparing(TenantMessage::getInvisiblePeriod));
 
         assertEquals(expectedList, actualList);

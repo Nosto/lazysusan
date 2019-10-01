@@ -10,6 +10,7 @@
 package com.nosto.redis.queue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -33,12 +34,13 @@ class SingleNodeScript extends AbstractScript {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys) {
+    public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys, Duration invisiblePeriod) {
         return unpackTenantMessage((List<byte[]>) call(Function.DEQUEUE,
                 SLOT,
                 bytes(queue),
                 bytes(now.toEpochMilli()),
-                bytes(maxKeys)));
+                bytes(maxKeys),
+                bytes(now.plus(invisiblePeriod).toEpochMilli())));
     }
 
     @Override
