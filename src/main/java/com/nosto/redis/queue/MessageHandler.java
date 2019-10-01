@@ -16,11 +16,14 @@ package com.nosto.redis.queue;
 public interface MessageHandler<T> {
     /**
      * Handle a dequeued message.
+     * The message will become visible again if this method returns {@code false} or throws an exception.
      *
      * @param tenant The message's tenant.
      * @param message The deserialized message payload.
+     * @return {@code true} if the message was successfully handled.
+     * {@code false} if the message was not successfully handled.
      */
-    void handleMessage(String tenant, T message);
+    boolean handleMessage(String tenant, T message);
 
     /**
      * @return The {@link Class} that this implementation handles.
