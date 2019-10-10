@@ -46,7 +46,7 @@ function public.dequeue(slot, queue, time, message_nexttime, maxkeys)
         else
             local _, key = next(invisible)
             local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
-            redis.call("zadd", schedule_key, message_nexttime, tenant)
+            redis.call("zadd", schedule_key, tenant_nexttime, tenant)
             result[#result + 1] = tenant
             result[#result + 1] = key
             result[#result + 1] = payload

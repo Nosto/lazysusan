@@ -50,9 +50,27 @@ public class LowLevelScriptTest extends AbstractScriptTest {
                 "q1",
                 new AbstractScript.TenantMessage("t1", "foo", "bar".getBytes(StandardCharsets.UTF_8)));
         dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ofSeconds(2), "bar");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ZERO);
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ZERO);
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ZERO, "bar");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(2), "bar");
+    }
+
+    @Test
+    public void unackedMessageBecomesVisibleMultipleMessages() {
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(1),
+                "q1",
+                new AbstractScript.TenantMessage("t1", "foo1", "bar1".getBytes(StandardCharsets.UTF_8)));
+
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(1),
+                "q1",
+                new AbstractScript.TenantMessage("t1", "foo2", "bar2".getBytes(StandardCharsets.UTF_8)));
+
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ofSeconds(2), "bar1");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(2), "bar2");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(2), "bar1");
+
+        script.ack("q1", "t1", "foo1");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(2));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1", Duration.ofSeconds(2), "bar2");
     }
 
     @Test
