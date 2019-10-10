@@ -67,7 +67,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         when(c2Handler.handleMessage(any(), any()))
                 .thenReturn(true);
 
-        configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", c1Handler, c2Handler));
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", INVISIBLE_DURATION, 1, c1Handler, c2Handler));
 
         MessageSender<Child1Pojo> m1Sender = connectionManager.createSender("q1", m -> "m1_" + m.getPropertyA());
 
@@ -102,8 +102,8 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         MessageHandler<Child1Pojo> c1Handler = createMockMessageHandler(Child1Pojo.class);
 
         configureAndStartConnectionManager(f -> f
-                .withMessageHandlers("q1", c1Handler)
-                .withMessageHandlers("q2", c1Handler));
+                .withQueueHandler("q1", INVISIBLE_DURATION, 1, c1Handler)
+                .withQueueHandler("q2", INVISIBLE_DURATION, 1, c1Handler));
 
         MessageSender<Child1Pojo> q1Sender = connectionManager.createSender("q1", m -> "m1_" + m.getPropertyA());
         MessageSender<Child1Pojo> q2Sender = connectionManager.createSender("q2", m -> "m1_" + m.getPropertyA());
@@ -128,7 +128,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void retryOnError() throws Exception {
         MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class);
 
-        configureAndStartConnectionManager(f -> f.withMessageHandlers("q", handler));
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q", INVISIBLE_DURATION, 1, handler));
 
         ParentPojo message = new ParentPojo("a");
 
@@ -142,7 +142,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void retryOnReturnFalse() throws Exception {
         MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class);
 
-        configureAndStartConnectionManager(f -> f.withMessageHandlers("q", handler));
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q", INVISIBLE_DURATION, 1, handler));
 
         ParentPojo message = new ParentPojo("a");
 
@@ -163,7 +163,8 @@ public class ConnectionManagerTest extends AbstractScriptTest {
 
         stopConnectionManager();
 
-        List<AbstractScript.TenantMessage> messages = script.dequeue(Instant.now().plusSeconds(2), "q", 100);
+        List<AbstractScript.TenantMessage> messages =
+                script.dequeue(Instant.now().plusSeconds(2), Duration.ZERO, "q", 100);
         assertEquals(1, messages.size());
         assertEquals("t", messages.get(0).getTenant());
         assertEquals("a", messages.get(0).getKey());
@@ -176,7 +177,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void handlerForQueue() throws Exception {
         MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class);
 
-        configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", INVISIBLE_DURATION, 1, handler));
 
         MessageSender<ParentPojo> messageSender = connectionManager.createSender("q2", ParentPojo::getPropertyA);
         messageSender.send("t", INVISIBLE_DURATION, new ParentPojo("a"));
@@ -207,7 +208,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void startupTwice() throws Exception {
         MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class);
 
-        configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", INVISIBLE_DURATION, 1, handler));
 
         try {
             connectionManager.start();
@@ -222,7 +223,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void startupAfterShutdown() throws Exception {
         MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class);
 
-        configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", INVISIBLE_DURATION, 1, handler));
 
         stopConnectionManager();
 
@@ -237,7 +238,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     public void shutdownNow() {
         MessageHandler<ParentPojo> handler = createMockMessageHandler(ParentPojo.class);
 
-        configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler));
+        configureAndStartConnectionManager(f -> f.withQueueHandler("q1", INVISIBLE_DURATION, 1, handler));
 
         connectionManager.shutdownNow();
         assertFalse(connectionManager.isRunning());
@@ -249,7 +250,8 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         MessageHandler<ParentPojo> handler2 = createMockMessageHandler(ParentPojo.class);
 
         try {
-            configureAndStartConnectionManager(f -> f.withMessageHandlers("q1", handler1, handler2));
+            configureAndStartConnectionManager(f ->
+                    f.withQueueHandler("q1", INVISIBLE_DURATION, 1, handler1, handler2));
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
 

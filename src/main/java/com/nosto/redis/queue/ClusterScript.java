@@ -10,6 +10,7 @@
 package com.nosto.redis.queue;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Iterator;
@@ -58,7 +59,7 @@ class ClusterScript extends AbstractScript {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<TenantMessage> dequeue(Instant now, String queue, int maxKeys) {
+    public List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys) {
         return unpackTenantMessage(IntStream.range(0, numSlots)
                 .map(x -> nextSlot.getAsInt())
                 .mapToObj(ClusterScript::bytes)
@@ -67,6 +68,7 @@ class ClusterScript extends AbstractScript {
                             key,
                             bytes(queue),
                             bytes(now.toEpochMilli()),
+                            bytes(now.plus(invisiblePeriod).toEpochMilli()),
                             bytes(maxKeys))).stream())
                 .collect(Collectors.toList()));
 
