@@ -68,11 +68,12 @@ abstract class AbstractScript {
      * {@link #ack} is called.
      *
      * @param now Time now
+     * @param invisiblePeriod When the message becomes visible again if it hasn't been acked in time.
      * @param queue The name of the queue.
      * @param maxKeys Maximum number of keys to remove.
      * @return A list of removed messages
      */
-    public abstract List<TenantMessage> dequeue(Instant now, String queue, int maxKeys);
+    public abstract List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys);
 
     /**
      * Acks that a message was processed and it can be permanently removed.

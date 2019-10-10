@@ -16,11 +16,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.nosto.redis.queue.ConnectionManager.QueueHandler;
 
 class QueuePoller implements Runnable {
     private static final Logger LOGGER = LogManager.getLogger(QueuePoller.class);
@@ -30,6 +30,7 @@ class QueuePoller implements Runnable {
     private final AbstractScript redis;
     private final MessageConverter messageConverter;
     private final String queueName;
+    private final Duration dequeueInvisiblePeriod;
     private final int dequeueSize;
     private final Duration waitAfterEmptyDequeue;
     private final Map<Class<?>, MessageHandler<?>> messageHandlers;
@@ -41,15 +42,15 @@ class QueuePoller implements Runnable {
                 String queueName,
                 int dequeueSize,
                 Duration waitAfterEmptyDequeue,
-                List<MessageHandler<?>> messageHandlers,
+                QueueHandler queueHandler,
                 Random random) {
         this.redis = redis;
         this.messageConverter = messageConverter;
         this.queueName = queueName;
+        this.dequeueInvisiblePeriod = queueHandler.getDequeueInvisiblePeriod();
         this.dequeueSize = dequeueSize;
         this.waitAfterEmptyDequeue = waitAfterEmptyDequeue;
-        this.messageHandlers = messageHandlers.stream()
-                .collect(Collectors.toMap(MessageHandler::getMessageClass, Function.identity()));
+        this.messageHandlers = queueHandler.getMessageHandlers();
         this.random = random;
     }
 
@@ -77,7 +78,8 @@ class QueuePoller implements Runnable {
     }
 
     private int poll() {
-        List<AbstractScript.TenantMessage> messages = redis.dequeue(Instant.now(), queueName, dequeueSize);
+        List<AbstractScript.TenantMessage> messages =
+                redis.dequeue(Instant.now(), dequeueInvisiblePeriod, queueName, dequeueSize);
         LOGGER.debug("Dequeued {} messages for queue '{}'", messages.size(), queueName);
 
         for (AbstractScript.TenantMessage message : messages) {
