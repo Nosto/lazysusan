@@ -19,13 +19,13 @@ function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
     end
 end
 
-function public.dequeue(slot, queue, time, maxkeys)
+function public.dequeue(slot, queue, time, message_nexttime, maxkeys)
     local schedule_key = private.schedule_key(slot, queue)
     local tenants = redis.call("zrangebyscore", schedule_key, "-inf", time, "LIMIT", 0, maxkeys) -- todo maxkeys
     local result = {}
     for _, tenant in ipairs(tenants) do
         local invisible_key = private.invisible_key(slot, queue, tenant)
-        local nexttime = time + redis.call("hget", private.period(slot, queue), tenant)
+        local tenant_nexttime = time + redis.call("hget", private.period(slot, queue), tenant)
 
         local invisible = redis.call("zrangebyscore", invisible_key, "-inf", time, "LIMIT", 0, 1)
         if next(invisible) == nil then
@@ -36,17 +36,17 @@ function public.dequeue(slot, queue, time, maxkeys)
                 local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
                 redis.call("zrem", private.visible_key(slot, queue, tenant), key)
 
-                redis.call("zadd", invisible_key, nexttime, key)
+                redis.call("zadd", invisible_key, message_nexttime, key)
 
                 result[#result + 1] = tenant
                 result[#result + 1] = key
                 result[#result + 1] = payload
-                redis.call("zadd", schedule_key, nexttime, tenant)
+                redis.call("zadd", schedule_key, tenant_nexttime, tenant)
             end
         else
             local _, key = next(invisible)
             local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
-            redis.call("zadd", schedule_key, nexttime, tenant)
+            redis.call("zadd", schedule_key, tenant_nexttime, tenant)
             result[#result + 1] = tenant
             result[#result + 1] = key
             result[#result + 1] = payload
