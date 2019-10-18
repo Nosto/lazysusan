@@ -20,13 +20,7 @@ task javadocJar(type: Jar) {
 }
 
 repositories {
-    maven {
-        url 'https://repo.nos.to/content/groups/nosto/'
-        credentials {
-            username = nexusUsername
-            password = nexusPassword
-        }
-    }
+    jcenter()
 }
 
 dependencies {
