@@ -41,10 +41,6 @@ publishing {
     repositories {
         maven {
             url 'https://repo.nos.to/content/repositories/NostoDependencies/'
-            credentials {
-                username = nexusUsername
-                password = nexusPassword
-            }
         }
     }
     publications {
