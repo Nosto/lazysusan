@@ -55,7 +55,7 @@ publishing {
             artifact javadocJar
 
             pom {
-                url = 'https://github.com/Nosto/redis-multitenant-queue'
+                url = 'https://github.com/nosto/lazysusan'
             }
         }
     }
