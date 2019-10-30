@@ -94,9 +94,13 @@ abstract class AbstractScript {
      */
     public abstract QueueStatistics getQueueStatistics(String queue);
 
-    protected byte[] loadScript() throws IOException {
-        return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
-                .getBytes(StandardCharsets.UTF_8);
+    protected byte[] loadScript() {
+        try {
+            return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
+                    .getBytes(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot load script.", e);
+        }
     }
 
     Object call(Function function, byte[] key, byte[]... args) {

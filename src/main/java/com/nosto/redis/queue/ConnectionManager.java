@@ -9,7 +9,6 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +23,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -98,6 +98,7 @@ public final class ConnectionManager {
                 throw new IllegalStateException("Already shut down.");
             }
 
+
             Integer totalWorkers = queueHandlers.values()
                     .stream()
                     .map(QueueHandler::getWorkerCount)
@@ -107,6 +108,11 @@ public final class ConnectionManager {
             this.queuePollerThreadPool = new ThreadPoolExecutor(totalWorkers, totalWorkers, 0,
                     TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), new QueuePollerThreadFactory(),
                     new ThreadPoolExecutor.AbortPolicy());
+
+            if (script instanceof StubScript) {
+                LOGGER.debug("Running in stub mode. Not creating pollers.");
+                return;
+            }
 
             Random random = new Random();
             queueHandlers.forEach((queueName, queueHandler) -> {
@@ -193,11 +199,11 @@ public final class ConnectionManager {
         private static final long DEFAULT_POLL_DURATION = 100L;
         private static final int DEFAULT_DEQUEUE_SIZE = 100;
 
-        private AbstractScript script;
+        private Supplier<AbstractScript> scriptSupplier;
         private Duration waitAfterEmptyDequeue = Duration.ofMillis(DEFAULT_POLL_DURATION);
         private int dequeueSize = DEFAULT_DEQUEUE_SIZE;
         private MessageConverter messageConverter;
-        private Map<String, QueueHandler> queueHandlers = new HashMap<>();
+        private final Map<String, QueueHandler> queueHandlers = new HashMap<>();
 
         private Factory() {
         }
@@ -217,11 +223,8 @@ public final class ConnectionManager {
                 throw new IllegalArgumentException("dbIndex must greater or equal to zero: " + dbIndex);
             }
 
-            try {
-                return withScript(new SingleNodeScript(redisClient, dbIndex));
-            } catch (IOException e) {
-                throw new IllegalStateException("Cannot connect.", e);
-            }
+            this.scriptSupplier = () -> new SingleNodeScript(redisClient, dbIndex);
+            return this;
         }
 
         /**
@@ -239,15 +242,22 @@ public final class ConnectionManager {
                 throw new IllegalArgumentException("numberSlots must be positive: " + numberSlots);
             }
 
-            try {
-                return withScript(new ClusterScript(rediClusterClient, numberSlots));
-            } catch (IOException e) {
-                throw new IllegalStateException("Cannot connect.", e);
-            }
+            this.scriptSupplier = () -> new ClusterScript(rediClusterClient, numberSlots);
+            return this;
+        }
+
+        /**
+         * Use a stub instead of connecting to Redis. Can be used for testing instead of waiting for messages
+         * to be handled asynchronously.
+         * @return Current {@link Factory} instance.
+         */
+        public Factory withClientStub() {
+            this.scriptSupplier = () -> new StubScript(messageConverter, queueHandlers);
+            return this;
         }
 
         Factory withScript(AbstractScript script) {
-            this.script = Objects.requireNonNull(script);
+            this.scriptSupplier = () -> script;
             return this;
         }
 
@@ -344,8 +354,9 @@ public final class ConnectionManager {
          * @throws NullPointerException if a message converter was not configured.
          */
         public ConnectionManager build() {
-            Objects.requireNonNull(script, "Redis client was not configured.");
+            Objects.requireNonNull(scriptSupplier, "Redis client was not configured.");
             Objects.requireNonNull(messageConverter, "MessageConverter was not configured.");
+            AbstractScript script = scriptSupplier.get();
 
             return new ConnectionManager(script, messageConverter, waitAfterEmptyDequeue, dequeueSize, queueHandlers);
         }

@@ -9,7 +9,6 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -44,7 +43,7 @@ public abstract class AbstractScriptTest {
 
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> scripts() throws IOException {
+    public static Collection<Object[]> scripts() {
         return Arrays.asList(new Object[][] {
                 {"single", singleJedis, new SingleNodeScript(singleJedis.getJedisPool(), 0)},
                 {"cluster", jedisCluster, new ClusterScript(jedisCluster.getJedisCluster(), 12)}});

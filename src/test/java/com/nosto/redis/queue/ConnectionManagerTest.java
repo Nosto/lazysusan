@@ -82,13 +82,13 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         assertEquals(EnqueueResult.SUCCESS, m2Sender.send("t2", INVISIBLE_DURATION, new Child2Pojo("a2", "b2")));
 
         verifyMessageHandlerAddedToPoller(c1Handler);
-        verifyMessagesReceived(Child1Pojo.class, c1Handler, "t1", new Child1Pojo("a1", "b1"),
+        verifyMessagesReceived(SHUTDOWN_DURATION, Child1Pojo.class, c1Handler, "t1", new Child1Pojo("a1", "b1"),
                 new Child1Pojo("a2", "b2"));
-        verifyMessagesReceived(Child1Pojo.class, c1Handler, "t2", new Child1Pojo("a1", "b1"));
+        verifyMessagesReceived(SHUTDOWN_DURATION, Child1Pojo.class, c1Handler, "t2", new Child1Pojo("a1", "b1"));
 
         verifyMessageHandlerAddedToPoller(c2Handler);
-        verifyMessagesReceived(Child2Pojo.class, c2Handler, "t1", new Child2Pojo("a1", "b1"));
-        verifyMessagesReceived(Child2Pojo.class, c2Handler, "t2", new Child2Pojo("a1", "b1"),
+        verifyMessagesReceived(SHUTDOWN_DURATION, Child2Pojo.class, c2Handler, "t1", new Child2Pojo("a1", "b1"));
+        verifyMessagesReceived(SHUTDOWN_DURATION, Child2Pojo.class, c2Handler, "t2", new Child2Pojo("a1", "b1"),
                 new Child2Pojo("a2", "b2"));
 
         verifyNoMoreInteractions(c1Handler);
@@ -112,7 +112,32 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         assertEquals(EnqueueResult.SUCCESS, q2Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
 
         verifyMessageHandlerAddedToPoller(c1Handler);
-        verifyMessagesReceived(Child1Pojo.class, c1Handler, "t1",
+        verifyMessagesReceived(SHUTDOWN_DURATION, Child1Pojo.class, c1Handler, "t1",
+                new Child1Pojo("a1", "b1"),
+                new Child1Pojo("a1", "b1"));
+
+        verifyNoMoreInteractions(c1Handler);
+
+        stopConnectionManager();
+    }
+
+    @Test
+    public void receivedMessagesInStub() throws Exception {
+        MessageHandler<Child1Pojo> c1Handler = createMockMessageHandler(Child1Pojo.class);
+
+        configureAndStartConnectionManager(f -> f
+                .withQueueHandler("q1", INVISIBLE_DURATION, 1, c1Handler)
+                .withQueueHandler("q2", INVISIBLE_DURATION, 1, c1Handler)
+                .withClientStub());
+
+        MessageSender<Child1Pojo> q1Sender = connectionManager.createSender("q1", m -> "m1_" + m.getPropertyA());
+        MessageSender<Child1Pojo> q2Sender = connectionManager.createSender("q2", m -> "m1_" + m.getPropertyA());
+
+        assertEquals(EnqueueResult.SUCCESS, q1Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
+        assertEquals(EnqueueResult.SUCCESS, q2Sender.send("t1", INVISIBLE_DURATION, new Child1Pojo("a1", "b1")));
+
+        verifyMessageHandlerAddedToPoller(c1Handler);
+        verifyMessagesReceived(Duration.ZERO, Child1Pojo.class, c1Handler, "t1",
                 new Child1Pojo("a1", "b1"),
                 new Child1Pojo("a1", "b1"));
 
@@ -159,7 +184,7 @@ public class ConnectionManagerTest extends AbstractScriptTest {
         assertEquals(EnqueueResult.SUCCESS, messageSender.send("t", INVISIBLE_DURATION, message));
 
         verifyMessageHandlerAddedToPoller(handler);
-        verifyMessagesReceived(ParentPojo.class, handler, "t", message);
+        verifyMessagesReceived(SHUTDOWN_DURATION, ParentPojo.class, handler, "t", message);
 
         stopConnectionManager();
 
@@ -281,12 +306,14 @@ public class ConnectionManagerTest extends AbstractScriptTest {
     }
 
     @SafeVarargs
-    private final <T> void verifyMessagesReceived(Class<T> c, MessageHandler<T> mockMessageHandler,
+    private final <T> void verifyMessagesReceived(Duration timeout,
+                                                  Class<T> c,
+                                                  MessageHandler<T> mockMessageHandler,
                                                   String expectedTenant,
                                                   T... expectedMessages) {
         ArgumentCaptor<T> messageCaptor = ArgumentCaptor.forClass(c);
 
-        verify(mockMessageHandler, timeout(SHUTDOWN_DURATION.toMillis()).times(expectedMessages.length))
+        verify(mockMessageHandler, timeout(timeout.toMillis()).times(expectedMessages.length))
                 .handleMessage(eq(expectedTenant), messageCaptor.capture());
 
         assertEquals(new HashSet<>(Arrays.asList(expectedMessages)), new HashSet<>(messageCaptor.getAllValues()));
