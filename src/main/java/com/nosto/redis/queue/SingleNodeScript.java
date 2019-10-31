@@ -9,7 +9,6 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -25,7 +24,7 @@ class SingleNodeScript extends AbstractScript {
     private final int dbIndex;
     private final byte[] sha;
 
-    SingleNodeScript(JedisPool jedisPool, int dbIndex) throws IOException {
+    SingleNodeScript(JedisPool jedisPool, int dbIndex) {
         this.jedisPool = jedisPool;
         this.dbIndex = dbIndex;
         byte[] loadedScript = loadScript();

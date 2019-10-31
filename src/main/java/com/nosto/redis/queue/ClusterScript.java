@@ -9,7 +9,6 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -34,7 +33,7 @@ class ClusterScript extends AbstractScript {
     private final IntSupplier nextSlot;
     private final int numSlots;
 
-    ClusterScript(BinaryJedisCluster jedis, int numSlots) throws IOException {
+    ClusterScript(BinaryJedisCluster jedis, int numSlots) {
         this.jedis = jedis;
         this.numSlots = numSlots;
 
