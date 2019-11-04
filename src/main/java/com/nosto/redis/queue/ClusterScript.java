@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -71,6 +72,21 @@ class ClusterScript extends AbstractScript {
                             bytes(maxKeys))).stream())
                 .collect(Collectors.toList()));
 
+    }
+
+    @Override
+    public Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
+        List<TenantMessage> messages = unpackTenantMessage(IntStream.range(0, numSlots)
+                .map(x -> nextSlot.getAsInt())
+                .mapToObj(ClusterScript::bytes)
+                .flatMap(key ->
+                        ((List<byte[]>) call(Function.PEEK,
+                                key,
+                                bytes(queue),
+                                bytes(tenant),
+                                bytes(now.toEpochMilli()))).stream())
+                .collect(Collectors.toList()));
+        return messages.stream().findFirst();
     }
 
     @Override

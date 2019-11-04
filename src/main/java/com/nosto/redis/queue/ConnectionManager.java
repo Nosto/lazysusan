@@ -10,12 +10,14 @@
 package com.nosto.redis.queue;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -31,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nosto.redis.queue.AbstractScript.TenantMessage;
 import com.nosto.redis.queue.jackson.PolymorphicJacksonMessageConverter;
 
 import redis.clients.jedis.BinaryJedisCluster;
@@ -75,6 +78,15 @@ public final class ConnectionManager {
      */
     public <T> MessageSender<T> createSender(String queueName, Function<T, String> keyFunction) {
         return new MessageSenderImpl<>(script, queueName, keyFunction, messageConverter);
+    }
+
+    /**
+     * @param queueName The queue to fetch the message from.
+     * @param tenant The tenant of the message.
+     * @return The teanant's message at the top of the queue.
+     */
+    public Optional<TenantMessage> peek(String queueName, String tenant) {
+        return script.peek(Instant.now(), queueName, tenant);
     }
 
     /**
