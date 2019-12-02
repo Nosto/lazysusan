@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
 
@@ -74,6 +75,16 @@ abstract class AbstractScript {
      * @return A list of removed messages
      */
     public abstract List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys);
+
+    /**
+     * Returns a message in the queue for the given tenant. The message does not become invisible.
+     *
+     * @param now Time now
+     * @param queue The name of the queue.
+     * @param tenant The name of the tenant.
+     * @return A message for the tenant.
+     */
+    public abstract Optional<TenantMessage> peek(Instant now, String queue, String tenant);
 
     /**
      * Acks that a message was processed and it can be permanently removed.
@@ -149,7 +160,8 @@ abstract class AbstractScript {
         ENQUEUE("enqueue"),
         DEQUEUE("dequeue"),
         ACK("ack"),
-        GET_QUEUE_STATS("queuestats");
+        GET_QUEUE_STATS("queuestats"),
+        PEEK("peek");
 
         private final byte[] name;
 

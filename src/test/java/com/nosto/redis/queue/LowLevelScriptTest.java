@@ -10,6 +10,7 @@
 package com.nosto.redis.queue;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -18,9 +19,12 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.junit.Test;
+
+import com.nosto.redis.queue.AbstractScript.TenantMessage;
 
 public class LowLevelScriptTest extends AbstractScriptTest {
     @Test
@@ -217,6 +221,34 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertEquals(2, stats.getTenantStatistics().size());
         assertEquals(new TenantStatistics("t1", 0, 7), stats.getTenantStatistics().get("t1"));
         assertEquals(new TenantStatistics("t2", 0, 5), stats.getTenantStatistics().get("t2"));
+    }
+
+    @Test
+    public void peekEmpty() {
+        Optional<TenantMessage> message = script.peek(Instant.ofEpochMilli(Long.MAX_VALUE), "q1", "t1");
+        assertFalse(message.isPresent());
+    }
+
+    @Test
+    public void peek() {
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new AbstractScript.TenantMessage("t1", "foo1", "bar1".getBytes(StandardCharsets.UTF_8)));
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new AbstractScript.TenantMessage("t1", "foo2", "bar2".getBytes(StandardCharsets.UTF_8)));
+
+        Optional<TenantMessage> message = script.peek(Instant.EPOCH, "q1", "t1");
+        assertTrue(message.isPresent());
+        assertEquals("t1", message.get().getTenant());
+        assertEquals("foo1", message.get().getKey());
+        assertEquals("bar1", new String(message.get().getPayload()));
+
+        message = script.peek(Instant.EPOCH, "q1", "t2");
+        assertFalse(message.isPresent());
+
+        message = script.peek(Instant.EPOCH, "q2", "t1");
+        assertFalse(message.isPresent());
     }
 
     private void enqueueMessages(String queue,

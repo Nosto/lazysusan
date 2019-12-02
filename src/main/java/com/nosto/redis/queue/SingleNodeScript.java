@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -40,6 +41,16 @@ class SingleNodeScript extends AbstractScript {
                 bytes(now.toEpochMilli()),
                 bytes(now.plus(invisiblePeriod).toEpochMilli()),
                 bytes(maxKeys)));
+    }
+
+    @Override
+    public Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
+        List<TenantMessage> messages = unpackTenantMessage((List<byte[]>) call(Function.PEEK,
+                SLOT,
+                bytes(queue),
+                bytes(tenant),
+                bytes(now.toEpochMilli())));
+        return messages.stream().findFirst();
     }
 
     @Override

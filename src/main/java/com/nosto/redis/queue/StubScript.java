@@ -34,6 +34,11 @@ class StubScript extends AbstractScript {
     }
 
     @Override
+    public Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
+        return Optional.empty();
+    }
+
+    @Override
     public QueueStatistics getQueueStatistics(String queue) {
         throw new IllegalStateException("Not supported.");
     }
