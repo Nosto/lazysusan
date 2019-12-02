@@ -79,8 +79,8 @@ public class MultitenantQueue {
     /**
      * De-queue messages.
      * @param messageInvisibilityPeriod The amount of time before a message can be de-queued again. To avoid the message
-     *        being processed more than once, it should be deleted after it has been processed by calling
-     *        {@link #delete(String, String)}.
+     *        being processed more than once, it should be deleted before {@code messageInvisibilityPeriod}
+     *        has elapsed by calling {@link #delete(String, String)}.
      * @param maximumTenants The maximum number of tenants to de-queue messages for.
      * @return De-queued messages.
      */
@@ -98,7 +98,7 @@ public class MultitenantQueue {
     }
 
     /**
-     * Fetch a message from the queue. Unline {@link #dequeue(Duration, int)}, the message does not become invisible.
+     * Fetch a message from the queue. Unlike {@link #dequeue(Duration, int)}, the message does not become invisible.
      * @param tenant The tenant associated with the message.
      * @return A message at the top of the queue, if one exists for the given tenant.
      */
