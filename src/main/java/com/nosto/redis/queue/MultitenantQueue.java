@@ -38,9 +38,7 @@ public class MultitenantQueue {
                             JedisPool jedisPool,
                             int dbIndex,
                             DequeueIntervalProvider dequeueIntervalProvider) {
-        this.queueName = Objects.requireNonNull(queueName);
-        this.redisScript = new SingleNodeScript(jedisPool, dbIndex);
-        this.dequeueIntervalProvider = dequeueIntervalProvider;
+        this(queueName, new SingleNodeScript(jedisPool, dbIndex), dequeueIntervalProvider);
     }
 
     /**
@@ -55,13 +53,11 @@ public class MultitenantQueue {
                             JedisCluster jedisCluster,
                             int shards,
                             DequeueIntervalProvider dequeueIntervalProvider) {
-        this.queueName = Objects.requireNonNull(queueName);
-        this.redisScript = new ClusterScript(jedisCluster, shards);
-        this.dequeueIntervalProvider = dequeueIntervalProvider;
+        this(queueName, new ClusterScript(jedisCluster, shards), dequeueIntervalProvider);
     }
 
     MultitenantQueue(String queueName, AbstractScript redisScript, DequeueIntervalProvider dequeueIntervalProvider) {
-        this.queueName = queueName;
+        this.queueName = Objects.requireNonNull(queueName);
         this.redisScript = redisScript;
         this.dequeueIntervalProvider = dequeueIntervalProvider;
     }
