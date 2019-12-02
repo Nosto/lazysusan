@@ -14,44 +14,76 @@ import static org.junit.Assert.assertFalse;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
 public class MultitenantQueueTest extends AbstractScriptTest {
-    private MultitenantQueue q1;
-    private MultitenantQueue q2;
+    private MultitenantQueue queue;
 
     @Before
-    public void definedQueues() {
-        q1 = new MultitenantQueue("q1", script, tenant -> Duration.ZERO);
-        q2 = new MultitenantQueue("q2", script, tenant -> Duration.ZERO);
+    public void createQueue() {
+        queue = new MultitenantQueue("q1", script, tenant -> Duration.ZERO);
     }
 
     @Test
-    public void multipleQueues() {
-        q1.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)));
-        q1.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)));
-        q1.enqueue(new TenantMessage("t2", "k1", "payload3".getBytes(StandardCharsets.UTF_8)));
+    public void delete() {
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)));
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)));
 
-        q2.enqueue(new TenantMessage("t1", "k1", "payload4".getBytes(StandardCharsets.UTF_8)));
-
-        assertEquals(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), q1.peek("t1").get());
-        assertFalse(q1.peek("t3").isPresent());
-
-        assertEquals(new TenantMessage("t1", "k1", "payload4".getBytes(StandardCharsets.UTF_8)), q2.peek("t1").get());
-        assertFalse(q2.peek("t2").isPresent());
-
-        Map<String, TenantStatistics> q1Stats = q1.getStatistics()
+        Map<String, TenantStatistics> qStats = queue.getStatistics()
                 .getTenantStatistics();
-        assertEquals(2, q1Stats.size());
-        assertEquals(new TenantStatistics("t1", 0, 2), q1Stats.get("t1"));
-        assertEquals(new TenantStatistics("t2", 0, 1), q1Stats.get("t2"));
+        assertEquals(1, qStats.size());
+        assertEquals(new TenantStatistics("t1", 0, 2), qStats.get("t1"));
 
-        Map<String, TenantStatistics> q2Stats = q2.getStatistics()
+        queue.delete("t1", "k1");
+
+        qStats = queue.getStatistics()
                 .getTenantStatistics();
-        assertEquals(1, q2Stats.size());
-        assertEquals(new TenantStatistics("t1", 0, 1), q2Stats.get("t1"));
+        assertEquals(1, qStats.size());
+        assertEquals(new TenantStatistics("t1", 0, 1), qStats.get("t1"));
+
+        List<TenantMessage> messages = queue.dequeue(Duration.ofSeconds(2), 10);
+        assertEquals(Arrays.asList(
+                new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8))), messages);
+
+        qStats = queue.getStatistics()
+                .getTenantStatistics();
+        assertEquals(1, qStats.size());
+        assertEquals(new TenantStatistics("t1", 1, 0), qStats.get("t1"));
+
+        queue.delete("t1", "k2");
+
+        qStats = queue.getStatistics()
+                .getTenantStatistics();
+        assertEquals(0, qStats.size());
+    }
+
+    @Test
+    public void dequeue() {
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)));
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)));
+
+        List<TenantMessage> q1Messages = queue.dequeue(Duration.ofSeconds(2), 10);
+        assertEquals(Arrays.asList(
+                new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8))), q1Messages);
+
+        Map<String, TenantStatistics> q1Stats = queue.getStatistics()
+                .getTenantStatistics();
+        assertEquals(1, q1Stats.size());
+        assertEquals(new TenantStatistics("t1", 1, 1), q1Stats.get("t1"));
+    }
+
+    @Test
+    public void peek() {
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)));
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)),
+                queue.peek("t1").get());
+        assertFalse(queue.peek("t2").isPresent());
     }
 }

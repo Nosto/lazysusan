@@ -47,16 +47,16 @@ public class MultitenantQueue {
      * Connect the multi-tenant queue to a Redis cluster.
      * @param queueName The name of the queue.
      * @param jedisCluster The Redis cluster to connect to.
-     * @param numberOfSlots The number of shards used for balancing the data across the cluster.
+     * @param shards The number of shards used for balancing the data across the cluster.
      * @param dequeueIntervalProvider {@link DequeueIntervalProvider} is used to determine the interval at which a
      *        single message can be de-queued for a tenant.
      */
     public MultitenantQueue(String queueName,
                             JedisCluster jedisCluster,
-                            int numberOfSlots,
+                            int shards,
                             DequeueIntervalProvider dequeueIntervalProvider) {
         this.queueName = Objects.requireNonNull(queueName);
-        this.redisScript = new ClusterScript(jedisCluster, numberOfSlots);
+        this.redisScript = new ClusterScript(jedisCluster, shards);
         this.dequeueIntervalProvider = dequeueIntervalProvider;
     }
 
@@ -81,11 +81,12 @@ public class MultitenantQueue {
      * @param messageInvisibilityPeriod The amount of time before a message can be de-queued again. To avoid the message
      *        being processed more than once, it should be deleted before {@code messageInvisibilityPeriod}
      *        has elapsed by calling {@link #delete(String, String)}.
-     * @param maximumTenants The maximum number of tenants to de-queue messages for.
+     * @param maximumMessages The maximum number of messages to de-queue. When connecting to a Redis cluster,
+     *        this number is multiplied by the number of shards because each shard is de-queued.
      * @return De-queued messages.
      */
-    public List<TenantMessage> dequeue(Duration messageInvisibilityPeriod, int maximumTenants) {
-        return redisScript.dequeue(Instant.now(), messageInvisibilityPeriod, queueName, maximumTenants);
+    public List<TenantMessage> dequeue(Duration messageInvisibilityPeriod, int maximumMessages) {
+        return redisScript.dequeue(Instant.now(), messageInvisibilityPeriod, queueName, maximumMessages);
     }
 
     /**
