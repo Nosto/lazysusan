@@ -19,7 +19,12 @@ public final class TenantStatistics {
     private final long invisibleMessageCount;
     private final long visibleMessageCount;
 
-    TenantStatistics(String tenant, long invisibleMessageCount, long visibleMessageCount) {
+    /**
+     * @param tenant The tenant.
+     * @param invisibleMessageCount Total number of invisible messages for the tenant.
+     * @param visibleMessageCount Total number of visible messages for the tenant.
+     */
+    public TenantStatistics(String tenant, long invisibleMessageCount, long visibleMessageCount) {
         this.tenant = tenant;
         this.invisibleMessageCount = invisibleMessageCount;
         this.visibleMessageCount = visibleMessageCount;

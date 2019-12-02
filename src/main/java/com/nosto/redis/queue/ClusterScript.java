@@ -59,7 +59,7 @@ class ClusterScript extends AbstractScript {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys) {
+    List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys) {
         return unpackTenantMessage(IntStream.range(0, numSlots)
                 .map(x -> nextSlot.getAsInt())
                 .mapToObj(ClusterScript::bytes)
@@ -75,7 +75,7 @@ class ClusterScript extends AbstractScript {
     }
 
     @Override
-    public Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
+    Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
         List<TenantMessage> messages = unpackTenantMessage(IntStream.range(0, numSlots)
                 .map(x -> nextSlot.getAsInt())
                 .mapToObj(ClusterScript::bytes)
@@ -91,7 +91,7 @@ class ClusterScript extends AbstractScript {
 
     @Override
     @SuppressWarnings("unchecked")
-    public QueueStatistics getQueueStatistics(String queue) {
+    QueueStatistics getQueueStatistics(String queue) {
         return unpackQueueStatistics(IntStream.range(0, numSlots)
                     .map(x -> nextSlot.getAsInt())
                     .mapToObj(ClusterScript::bytes)
