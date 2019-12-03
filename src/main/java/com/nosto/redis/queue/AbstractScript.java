@@ -42,7 +42,7 @@ abstract class AbstractScript {
      * @param tenantMessage The message to be added.
      * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
-    public EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
+    EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
         boolean result = TRUE_RESPONSE.equals(call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
@@ -74,7 +74,7 @@ abstract class AbstractScript {
      * @param maxKeys Maximum number of keys to remove.
      * @return A list of removed messages
      */
-    public abstract List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys);
+    abstract List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys);
 
     /**
      * Returns a message in the queue for the given tenant. The message does not become invisible.
@@ -84,7 +84,7 @@ abstract class AbstractScript {
      * @param tenant The name of the tenant.
      * @return A message for the tenant.
      */
-    public abstract Optional<TenantMessage> peek(Instant now, String queue, String tenant);
+    abstract Optional<TenantMessage> peek(Instant now, String queue, String tenant);
 
     /**
      * Acks that a message was processed and it can be permanently removed.
@@ -93,7 +93,7 @@ abstract class AbstractScript {
      * @param tenant The tenant to whom the message belongs.
      * @param key The de-duplication key of the message to be acked.
      */
-    public void ack(String queue, String tenant, String key) {
+    void ack(String queue, String tenant, String key) {
         call(Function.ACK, slot(tenant), bytes(queue), bytes(tenant), bytes(key));
     }
 
@@ -103,7 +103,7 @@ abstract class AbstractScript {
      * @param queue The name of the queue
      * @return {@link QueueStatistics} for the queue.
      */
-    public abstract QueueStatistics getQueueStatistics(String queue);
+    abstract QueueStatistics getQueueStatistics(String queue);
 
     protected byte[] loadScript() {
         try {
@@ -174,27 +174,4 @@ abstract class AbstractScript {
         }
     }
 
-    public static class TenantMessage {
-        private final String tenant;
-        private final String key;
-        private final byte[] payload;
-
-        TenantMessage(String tenant, String key, byte[] payload) {
-            this.tenant = tenant;
-            this.key = key;
-            this.payload = payload;
-        }
-
-        public String getTenant() {
-            return tenant;
-        }
-
-        public String getKey() {
-            return key;
-        }
-
-        public byte[] getPayload() {
-            return payload;
-        }
-    }
 }

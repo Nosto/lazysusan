@@ -9,20 +9,18 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-/**
- * This is used for serializing messages before enqueuing them and for
- * deserializing dequeued messages so they can be passed to their corresponding {@link MessageHandler}.
- */
-public interface MessageConverter {
-    /**
-     * @param messagePayload The message to be enqueued.
-     * @return The serialized message.
-     */
-    byte[] serialize(Object messagePayload);
+import java.time.Duration;
 
+/**
+ * The interval at which a message can be de-queued can be set on a per tenant basis.
+ * For example, if a tenant's dequeue interval is {@code Duration.withSeconds(1)}, 1 message can be dequeued
+ * every 1 second for the specified tenant.
+ */
+public interface DequeueIntervalProvider {
     /**
-     * @param messagePayload A dequeued message.
-     * @return The deserialized message.
+     * Get the interval at which a message can be de-queued for a tenant.
+     * @param tenant The tenant.
+     * @return The dequeue rate for the specified {@code tenant}.
      */
-    Object deserialize(byte[] messagePayload);
+    Duration getDequeueInterval(String tenant);
 }

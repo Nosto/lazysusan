@@ -34,7 +34,7 @@ class SingleNodeScript extends AbstractScript {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys) {
+    List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys) {
         return unpackTenantMessage((List<byte[]>) call(Function.DEQUEUE,
                 SLOT,
                 bytes(queue),
@@ -44,7 +44,7 @@ class SingleNodeScript extends AbstractScript {
     }
 
     @Override
-    public Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
+    Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
         List<TenantMessage> messages = unpackTenantMessage((List<byte[]>) call(Function.PEEK,
                 SLOT,
                 bytes(queue),
