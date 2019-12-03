@@ -9,8 +9,9 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.util.Arrays;
-import java.util.Objects;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * A representation of a tenant's message that can be enqueued.
@@ -55,29 +56,16 @@ public final class TenantMessage {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        TenantMessage that = (TenantMessage) o;
-        return Objects.equals(tenant, that.tenant) &&
-                Objects.equals(key, that.key) &&
-                Arrays.equals(payload, that.payload);
+        return EqualsBuilder.reflectionEquals(this, o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tenant, key, payload);
+        return HashCodeBuilder.reflectionHashCode(this);
     }
 
     @Override
     public String toString() {
-        return "TenantMessage{" +
-                "tenant='" + tenant + '\'' +
-                ", key='" + key + '\'' +
-                ", payload=" + Arrays.toString(payload) +
-                '}';
+        return ToStringBuilder.reflectionToString(this);
     }
 }

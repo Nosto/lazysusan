@@ -9,7 +9,9 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.util.Objects;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Queue statistics associated with a tenant.
@@ -53,29 +55,16 @@ public final class TenantStatistics {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        TenantStatistics that = (TenantStatistics) o;
-        return invisibleMessageCount == that.invisibleMessageCount &&
-                visibleMessageCount == that.visibleMessageCount &&
-                Objects.equals(tenant, that.tenant);
+        return EqualsBuilder.reflectionEquals(this, o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tenant, invisibleMessageCount, visibleMessageCount);
+        return HashCodeBuilder.reflectionHashCode(this);
     }
 
     @Override
     public String toString() {
-        return "TenantStatistics{" +
-                "tenant='" + tenant + '\'' +
-                ", invisibleMessageCount=" + invisibleMessageCount +
-                ", visibleMessageCount=" + visibleMessageCount +
-                '}';
+        return ToStringBuilder.reflectionToString(this);
     }
 }
