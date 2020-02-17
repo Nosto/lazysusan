@@ -77,6 +77,32 @@ function public.queuestats(slot, queue)
     return result
 end
 
+function public.peek(slot, queue, tenant, time)
+    local schedule_key = private.schedule_key(slot, queue)
+    local result = {}
+    local invisible_key = private.invisible_key(slot, queue, tenant)
+    local invisible = redis.call("zrangebyscore", invisible_key, "-inf", time, "LIMIT", 0, 1)
+    if next(invisible) == nil then
+        local visible = redis.call("zrangebyscore", private.visible_key(slot, queue, tenant), "-inf", "+inf", "LIMIT", 0, 1)
+
+        if next(visible) then
+            local _, key = next(visible)
+            local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
+
+            result[#result + 1] = tenant
+            result[#result + 1] = key
+            result[#result + 1] = payload
+        end
+    else
+        local _, key = next(invisible)
+        local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
+        result[#result + 1] = tenant
+        result[#result + 1] = key
+        result[#result + 1] = payload
+    end
+    return result
+end
+
 function private.schedule_key(slot, queue)
     return "mq:{" .. slot .. "}:" .. queue .. ":schedule"
 end

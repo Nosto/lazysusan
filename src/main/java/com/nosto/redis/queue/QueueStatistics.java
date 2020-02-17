@@ -18,7 +18,11 @@ import java.util.Map;
 public final class QueueStatistics {
     private final Map<String, TenantStatistics> tenantStatistics;
 
-    QueueStatistics(Map<String, TenantStatistics> tenantStatistics) {
+    /**
+     * Queue statistics.
+     * @param tenantStatistics Statistics per tenant.
+     */
+    public QueueStatistics(Map<String, TenantStatistics> tenantStatistics) {
         this.tenantStatistics = Collections.unmodifiableMap(tenantStatistics);
     }
 

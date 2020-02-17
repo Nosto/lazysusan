@@ -9,11 +9,11 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -25,7 +25,7 @@ class SingleNodeScript extends AbstractScript {
     private final int dbIndex;
     private final byte[] sha;
 
-    SingleNodeScript(JedisPool jedisPool, int dbIndex) throws IOException {
+    SingleNodeScript(JedisPool jedisPool, int dbIndex) {
         this.jedisPool = jedisPool;
         this.dbIndex = dbIndex;
         byte[] loadedScript = loadScript();
@@ -34,13 +34,23 @@ class SingleNodeScript extends AbstractScript {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys) {
+    List<TenantMessage> dequeue(Instant now, Duration invisiblePeriod, String queue, int maxKeys) {
         return unpackTenantMessage((List<byte[]>) call(Function.DEQUEUE,
                 SLOT,
                 bytes(queue),
                 bytes(now.toEpochMilli()),
                 bytes(now.plus(invisiblePeriod).toEpochMilli()),
                 bytes(maxKeys)));
+    }
+
+    @Override
+    Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
+        List<TenantMessage> messages = unpackTenantMessage((List<byte[]>) call(Function.PEEK,
+                SLOT,
+                bytes(queue),
+                bytes(tenant),
+                bytes(now.toEpochMilli())));
+        return messages.stream().findFirst();
     }
 
     @Override

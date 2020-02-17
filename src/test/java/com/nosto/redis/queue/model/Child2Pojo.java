@@ -9,7 +9,9 @@
  ******************************************************************************/
 package com.nosto.redis.queue.model;
 
-import java.util.Objects;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -30,23 +32,16 @@ public class Child2Pojo extends ParentPojo {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Child2Pojo that = (Child2Pojo) o;
-        return Objects.equals(propertyB, that.propertyB);
+        return EqualsBuilder.reflectionEquals(this, o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(propertyB);
+        return HashCodeBuilder.reflectionHashCode(this);
     }
 
     @Override
     public String toString() {
-        return "Child2Pojo{" + "propertyB='" + propertyB + '\'' + '}';
+        return ToStringBuilder.reflectionToString(this);
     }
 }

@@ -14,43 +14,44 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
- * Queue statistics associated with a tenant.
+ * A representation of a tenant's message that can be enqueued.
  */
-public final class TenantStatistics {
+public final class TenantMessage {
     private final String tenant;
-    private final long invisibleMessageCount;
-    private final long visibleMessageCount;
+    private final String key;
+    private final byte[] payload;
 
     /**
-     * @param tenant The tenant.
-     * @param invisibleMessageCount Total number of invisible messages for the tenant.
-     * @param visibleMessageCount Total number of visible messages for the tenant.
+     * Create a new {@link TenantMessage}.
+     * @param tenant The tenant associated with the message.
+     * @param key A key that identifies the message. Messages with the same key are treated as duplicates.
+     * @param payload The message payload.
      */
-    public TenantStatistics(String tenant, long invisibleMessageCount, long visibleMessageCount) {
+    public TenantMessage(String tenant, String key, byte[] payload) {
         this.tenant = tenant;
-        this.invisibleMessageCount = invisibleMessageCount;
-        this.visibleMessageCount = visibleMessageCount;
+        this.key = key;
+        this.payload = payload;
     }
 
     /**
-     * @return The tenant.
+     * @return The tenant associated with the message.
      */
     public String getTenant() {
         return tenant;
     }
 
     /**
-     * @return Total number of invisible messages for the tenant.
+     * @return A key that identifies the message. Messages with the same key are treated as duplicates.
      */
-    public long getInvisibleMessageCount() {
-        return invisibleMessageCount;
+    public String getKey() {
+        return key;
     }
 
     /**
-     * @return Total number of visible messages for the tenant.
+     * @return The message payload.
      */
-    public long getVisibleMessageCount() {
-        return visibleMessageCount;
+    public byte[] getPayload() {
+        return payload;
     }
 
     @Override
