@@ -107,16 +107,16 @@ function public.purge(slot, queue, tenant)
     redis.call("zrem", schedule_key, tenant)
 
     local payload_key = private.payload_key(slot, queue, tenant)
-    for _, key in ipairs(redis.call("hkeys", payload_key)) do
-        redis.call("hdel", payload_key, key)
-    end
+    redis.call("del", payload_key)
 
     local total_removed = 0
     local invisible_key = private.invisible_key(slot, queue, tenant)
-    total_removed = total_removed + redis.call("zremrangebyscore", invisible_key, "-inf", "+inf")
+    total_removed = total_removed + redis.call("zcard", invisible_key)
+    redis.call("del", invisible_key)
 
     local visible_key = private.visible_key(slot, queue, tenant)
-    total_removed = total_removed + redis.call("zremrangebyscore", visible_key, "-inf", "+inf")
+    total_removed = total_removed + redis.call("zcard", visible_key)
+    redis.call("del", visible_key)
 
     return total_removed
 end
