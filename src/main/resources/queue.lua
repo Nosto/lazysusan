@@ -78,7 +78,6 @@ function public.queuestats(slot, queue)
 end
 
 function public.peek(slot, queue, tenant, time)
-    local schedule_key = private.schedule_key(slot, queue)
     local result = {}
     local invisible_key = private.invisible_key(slot, queue, tenant)
     local invisible = redis.call("zrangebyscore", invisible_key, "-inf", time, "LIMIT", 0, 1)
@@ -101,6 +100,25 @@ function public.peek(slot, queue, tenant, time)
         result[#result + 1] = payload
     end
     return result
+end
+
+function public.purge(slot, queue, tenant)
+    local schedule_key = private.schedule_key(slot, queue)
+    redis.call("zrem", schedule_key, tenant)
+
+    local payload_key = private.payload_key(slot, queue, tenant)
+    for _, key in ipairs(redis.call("hkeys", payload_key)) do
+        redis.call("hdel", payload_key, key)
+    end
+
+    local total_removed = 0
+    local invisible_key = private.invisible_key(slot, queue, tenant)
+    total_removed = total_removed + redis.call("zremrangebyscore", invisible_key, "-inf", "+inf")
+
+    local visible_key = private.visible_key(slot, queue, tenant)
+    total_removed = total_removed + redis.call("zremrangebyscore", visible_key, "-inf", "+inf")
+
+    return total_removed
 end
 
 function private.schedule_key(slot, queue)

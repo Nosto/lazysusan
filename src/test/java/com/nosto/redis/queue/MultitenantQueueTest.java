@@ -86,4 +86,12 @@ public class MultitenantQueueTest extends AbstractScriptTest {
                 queue.peek("t1").get());
         assertFalse(queue.peek("t2").isPresent());
     }
+
+    @Test
+    public void purge() {
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)));
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)));
+
+        assertEquals(2, queue.purge("t1"));
+    }
 }

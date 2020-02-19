@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -247,6 +248,74 @@ public class LowLevelScriptTest extends AbstractScriptTest {
 
         message = script.peek(Instant.EPOCH, "q2", "t1");
         assertFalse(message.isPresent());
+    }
+
+    @Test
+    public void purge() {
+        // Enqueue messages for t1 to q1 & q2
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new TenantMessage("t1", "foo1", "bar1".getBytes(StandardCharsets.UTF_8)));
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new TenantMessage("t1", "foo2", "bar2".getBytes(StandardCharsets.UTF_8)));
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q2",
+                new TenantMessage("t1", "foo1", "bar3".getBytes(StandardCharsets.UTF_8)));
+
+        // Enqueue messages for t2 to q1 & q2
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new TenantMessage("t2", "foo1", "bar4".getBytes(StandardCharsets.UTF_8)));
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new TenantMessage("t2", "foo2", "bar5".getBytes(StandardCharsets.UTF_8)));
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q2",
+                new TenantMessage("t2", "foo1", "bar6".getBytes(StandardCharsets.UTF_8)));
+
+        // Dequeue from q1 and q2 verify visible and invisible messages are dequeued.
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ZERO, "bar1", "bar4");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q2", Duration.ZERO, "bar3", "bar6");
+
+        // Verify statistics before purge
+        QueueStatistics statistics = script.getQueueStatistics("q1");
+        assertEquals(2, statistics.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 1, 1), statistics.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 1, 1), statistics.getTenantStatistics().get("t2"));
+
+        statistics = script.getQueueStatistics("q2");
+        assertEquals(2, statistics.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 1, 0), statistics.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 1, 0), statistics.getTenantStatistics().get("t2"));
+
+        // 1 visible and 1 invisible message purged for t1 in q1
+        assertEquals(2, script.purge("q1", "t1"));
+
+        // Verify statistics after purge
+        statistics = script.getQueueStatistics("q1");
+        assertEquals(1, statistics.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t2", 1, 1), statistics.getTenantStatistics().get("t2"));
+
+        statistics = script.getQueueStatistics("q2");
+        assertEquals(2, statistics.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 1, 0), statistics.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 1, 0), statistics.getTenantStatistics().get("t2"));
+
+        // Enqueue messages again to verify enqueue, dequeue and statistics work as normal after purge
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new TenantMessage("t1", "foo1", "bar1".getBytes(StandardCharsets.UTF_8)));
+        script.enqueue(Instant.EPOCH, Duration.ofSeconds(5),
+                "q1",
+                new TenantMessage("t1", "foo2", "bar2".getBytes(StandardCharsets.UTF_8)));
+
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(10), "q1", Duration.ZERO, "bar1", "bar4");
+
+        statistics = script.getQueueStatistics("q1");
+        assertEquals(2, statistics.getTenantStatistics().size());
+        assertEquals(new TenantStatistics("t1", 1, 1), statistics.getTenantStatistics().get("t1"));
+        assertEquals(new TenantStatistics("t2", 1, 1), statistics.getTenantStatistics().get("t2"));
     }
 
     private void enqueueMessages(String queue,
