@@ -109,4 +109,13 @@ public class MultitenantQueue {
     public QueueStatistics getStatistics() {
         return redisScript.getQueueStatistics(queueName);
     }
+
+    /**
+     * Purges all of the tenant's messages.
+     * @param tenant The tenant for whom messages will be purged.
+     * @return The total number of messages purged.
+     */
+    public long purge(String tenant) {
+        return redisScript.purge(queueName, tenant);
+    }
 }

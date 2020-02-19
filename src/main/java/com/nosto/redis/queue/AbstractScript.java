@@ -105,6 +105,16 @@ abstract class AbstractScript {
      */
     abstract QueueStatistics getQueueStatistics(String queue);
 
+    /**
+     * Purges all of the tenant's messages from the specified queue.
+     * @param queue The name of the queue.
+     * @param tenant The tenant for whom messages will be purged.
+     * @return The total number of messages purged.
+     */
+    long purge(String queue, String tenant) {
+        return (Long) call(Function.PURGE, slot(tenant), bytes(queue), bytes(tenant));
+    }
+
     protected byte[] loadScript() {
         try {
             return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
@@ -161,7 +171,8 @@ abstract class AbstractScript {
         DEQUEUE("dequeue"),
         ACK("ack"),
         GET_QUEUE_STATS("queuestats"),
-        PEEK("peek");
+        PEEK("peek"),
+        PURGE("purge");
 
         private final byte[] name;
 
