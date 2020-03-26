@@ -1,0 +1,19 @@
+version: '3.6'
+services:
+  redissingle:
+    image: redis:3.2
+    command: redis-server --save "" --maxmemory "128mb" --maxmemory-policy "allkeys-lru" --logfile "" --protected-mode "no"
+    ports:
+      - "6379:6379"
+    domainname: dev.nos.to
+#  rediscluster:
+#    image: redis:4.0
+#    command: redis-cluster
+#    ports:
+#      - "7100:7100"
+#      - "7101:7101"
+#      - "7102:7102"
+#      - "7103:7103"
+#      - "7104:7104"
+#      - "7105:7105"
+#    domainname: dev.nos.to

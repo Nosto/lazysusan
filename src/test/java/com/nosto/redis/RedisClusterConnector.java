@@ -17,15 +17,28 @@ import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 public class RedisClusterConnector extends ExternalResource implements RedisConnector {
+    private final String host;
+    private final int port;
     private final JedisCluster jedisCluster;
 
-    public RedisClusterConnector() {
-        HostAndPort hostAndPort = new HostAndPort("rediscluster.dev.nos.to", 7100);
-        jedisCluster = new JedisCluster(hostAndPort, 1000);
+    public RedisClusterConnector(String host, int port) {
+        this.host = host;
+        this.port = port;
+        jedisCluster = new JedisCluster(new HostAndPort(host, port), 1000);
     }
 
     public JedisCluster getJedisCluster() {
         return jedisCluster;
+    }
+
+    @Override
+    public String getHost() {
+        return host;
+    }
+
+    @Override
+    public int getPort() {
+        return port;
     }
 
     @Override

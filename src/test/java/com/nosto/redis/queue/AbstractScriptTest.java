@@ -9,16 +9,16 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.io.File;
+import java.util.Objects;
 
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.testcontainers.containers.DockerComposeContainer;
 
 import com.nosto.redis.RedisClusterConnector;
-import com.nosto.redis.RedisConnector;
 import com.nosto.redis.SingleNodeRedisConnector;
 
 /**
@@ -27,30 +27,37 @@ import com.nosto.redis.SingleNodeRedisConnector;
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
     @ClassRule
-    public static RedisClusterConnector jedisCluster = new RedisClusterConnector();
+    public static final SingleNodeRedisConnector REDIS_SINGLE_CONNECTOR =
+            new SingleNodeRedisConnector("redissingle.dev.nos.to", 6379);
 
     @ClassRule
-    public static SingleNodeRedisConnector singleJedis = new SingleNodeRedisConnector();
+    public static final RedisClusterConnector REDIS_CLUSTER_CONNECTOR =
+            new RedisClusterConnector("rediscluster.dev.nos.to", 7100);
+
+    @ClassRule
+    public static final DockerComposeContainer DOCKER_COMPOSE_CONTAINER =
+            new DockerComposeContainer(new File("src/test/resources/docker-compose.yml"));
 
     @Parameterized.Parameter
     public String parameterName;
 
-    @Parameterized.Parameter(1)
-    public RedisConnector redisConnector;
-
-    @Parameterized.Parameter(2)
-    public AbstractScript script;
-
+    protected AbstractScript script;
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> scripts() {
-        return Arrays.asList(new Object[][] {
-                {"single", singleJedis, new SingleNodeScript(singleJedis.getJedisPool(), 0)},
-                {"cluster", jedisCluster, new ClusterScript(jedisCluster.getJedisCluster(), 12)}});
+    public static Object[] parameters() {
+        return new Object[] {REDIS_SINGLE_CONNECTOR.getHost()};
     }
 
     @Before
     public void setUp() {
-        redisConnector.flush();
+        if (Objects.equals(parameterName, REDIS_SINGLE_CONNECTOR.getHost())) {
+            REDIS_SINGLE_CONNECTOR.flush();
+            script = new SingleNodeScript(REDIS_SINGLE_CONNECTOR.getJedisPool(), 0);
+        } else if (Objects.equals(parameterName, REDIS_CLUSTER_CONNECTOR.getHost())) {
+            REDIS_CLUSTER_CONNECTOR.flush();
+            script = new ClusterScript(REDIS_CLUSTER_CONNECTOR.getJedisCluster(), 12);
+        } else {
+            throw new IllegalStateException("Unknown parameter: " + parameterName);
+        }
     }
 }
