@@ -10,12 +10,14 @@
 package com.nosto.redis.queue;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.google.common.collect.ImmutableMap;
 import com.nosto.redis.RedisClusterConnector;
 import com.nosto.redis.SingleNodeRedisConnector;
 import com.palantir.docker.compose.DockerComposeRule;
@@ -26,8 +28,11 @@ import com.palantir.docker.compose.connection.DockerPort;
  */
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
-    private static final String REDIS_SINGLE = "redissingle";
-    private static final String REDIS_CLUSTER = "rediscluster";
+    // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
+    private static final Map<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
+            .put("redissingle", true)
+            .put("rediscluster", false)
+            .build();
 
     @ClassRule
     public static final DockerComposeRule DOCKER_RULE = DockerComposeRule.builder()
@@ -35,36 +40,33 @@ public abstract class AbstractScriptTest {
             .build();
 
     @Parameterized.Parameter
-    public String parameterName;
+    public String dockerService;
 
     protected AbstractScript script;
 
-    private SingleNodeRedisConnector singleNodeRedisConnector;
-    private RedisClusterConnector redisClusterConnector;
-
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {
-        return new Object[] {REDIS_SINGLE, REDIS_CLUSTER};
+        return CONTAINERS.keySet().toArray();
     }
 
     @Before
     public void setUp() throws IOException, InterruptedException {
         DockerPort servicePort = DOCKER_RULE.dockerCompose()
-                .ports(parameterName)
+                .ports(dockerService)
                 .stream()
                 .findFirst()
                 .get();
 
-        if (REDIS_SINGLE.equals(parameterName)) {
-            singleNodeRedisConnector = new SingleNodeRedisConnector(servicePort.getIp(), servicePort.getExternalPort());
+        if (CONTAINERS.get(dockerService)) {
+            SingleNodeRedisConnector singleNodeRedisConnector =
+                    new SingleNodeRedisConnector(servicePort.getIp(), servicePort.getExternalPort());
             singleNodeRedisConnector.flush();
             script = new SingleNodeScript(singleNodeRedisConnector.getJedisPool(), 0);
-        } else if (REDIS_CLUSTER.equals(parameterName)) {
-            redisClusterConnector = new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
+        } else {
+            RedisClusterConnector redisClusterConnector =
+                    new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
             redisClusterConnector.flush();
             script = new ClusterScript(redisClusterConnector.getJedisCluster(), 12);
-        } else {
-            throw new IllegalStateException("Unknown parameter: " + parameterName);
         }
     }
 }
