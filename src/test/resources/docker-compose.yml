@@ -1,13 +1,13 @@
 version: '3.6'
 services:
-  redissingle:
+  redissingle5:
     image: redis:5.0
     command: redis-server --port 7000
     ports:
       - "7000:7000"
     volumes:
       - ./redissingle.conf:/etc/redis/redis.conf
-  rediscluster:
+  rediscluster5:
     image: redis:5.0
     command: start-cluster.sh
     ports:
