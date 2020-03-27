@@ -9,40 +9,24 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.nosto.redis.RedisClusterConnector;
-
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.exceptions.JedisDataException;
-
-public class MultitenantQueueTest extends Assert {
-
-    @ClassRule
-    public static RedisClusterConnector jedisCluster = new RedisClusterConnector();
+public class MultitenantQueueTest extends AbstractScriptTest {
     private MultitenantQueue queue;
 
     @Before
     public void createQueue() {
-        jedisCluster.getJedisCluster().getClusterNodes().forEach((key, jedisPool) -> {
-            try (Jedis j = jedisPool.getResource()) {
-                j.set(",,", "gggs");
-                j.flushDB();
-            } catch (JedisDataException e) {
-                // redis.clients.jedis.exceptions.JedisDataException: READONLY You can't write against a read only slave
-            }
-        });
-        jedisCluster.getJedisCluster().set(",,", "gggs");
-        AbstractScript script = new ClusterScript(jedisCluster.getJedisCluster(), 1);
+        queue = new MultitenantQueue("q1", script, tenant -> Duration.ZERO);
     }
 
     @Test
