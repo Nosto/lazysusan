@@ -44,7 +44,7 @@ public abstract class AbstractScriptTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {
-        return new Object[] {"redissingle"};
+        return new Object[] {REDIS_SINGLE, REDIS_CLUSTER};
     }
 
     @Before
@@ -62,7 +62,7 @@ public abstract class AbstractScriptTest {
         } else if (REDIS_CLUSTER.equals(parameterName)) {
             redisClusterConnector = new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
             redisClusterConnector.flush();
-            script = new ClusterScript(redisClusterConnector.getJedisCluster(), 12);
+            script = new ClusterScript(redisClusterConnector.getJedisCluster(), 3);
         } else {
             throw new IllegalStateException("Unknown parameter: " + parameterName);
         }

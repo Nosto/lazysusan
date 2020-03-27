@@ -1,18 +1,47 @@
 version: '3.6'
+networks:
+  redissinglenet:
+    driver: bridge
+  redisclusternet:
+    driver: bridge
 services:
   redissingle:
     image: redis:4.0
-    command: redis-server
+    command: redis-server /etc/redis/redis.conf
+    networks:
+      - redissinglenet
     ports:
-      - "6379:6379"
-#  rediscluster:
-#    image: redis:4.0
-#    command: redis-cluster
-#    ports:
-#      - "7100:7100"
-#      - "7101:7101"
-#      - "7102:7102"
-#      - "7103:7103"
-#      - "7104:7104"
-#      - "7105:7105"
-#    domainname: dev.nos.to
+      - "7000:7000"
+    volumes:
+      - ./redissingle.conf:/etc/redis/redis.conf
+  redis1:
+    image: redis:4.0
+    command: redis-server /etc/redis/redis.conf
+    ports:
+      - "7001:7001"
+    networks:
+      - redisclusternet
+    volumes:
+      - ./rediscluster1.conf:/etc/redis/redis.conf
+  redis2:
+    image: redis:4.0
+    command: redis-server /etc/redis/redis.conf
+    ports:
+      - "7002:7002"
+    networks:
+      - redisclusternet
+    volumes:
+      - ./rediscluster2.conf:/etc/redis/redis.conf
+    depends_on:
+      - redis1
+  rediscluster:
+    image: redis:4.0
+    command: redis-server /etc/redis/redis.conf
+    ports:
+      - "7003:7003"
+    networks:
+      - redisclusternet
+    volumes:
+      - ./rediscluster3.conf:/etc/redis/redis.conf
+    depends_on:
+      - redis2
