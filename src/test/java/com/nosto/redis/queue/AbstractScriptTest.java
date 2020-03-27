@@ -9,53 +9,60 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.io.File;
-import java.util.Objects;
+import java.io.IOException;
 
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.testcontainers.containers.DockerComposeContainer;
 
 import com.nosto.redis.RedisClusterConnector;
 import com.nosto.redis.SingleNodeRedisConnector;
+import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.connection.DockerPort;
 
 /**
  * Extend this class to run tests against a single Redis node and a Redis cluster.
  */
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
-    @ClassRule
-    public static final SingleNodeRedisConnector REDIS_SINGLE_CONNECTOR =
-            new SingleNodeRedisConnector("redissingle.dev.nos.to", 6379);
+    private static final String REDIS_SINGLE = "redissingle";
+    private static final String REDIS_CLUSTER = "rediscluster";
 
     @ClassRule
-    public static final RedisClusterConnector REDIS_CLUSTER_CONNECTOR =
-            new RedisClusterConnector("rediscluster.dev.nos.to", 7100);
-
-    @ClassRule
-    public static final DockerComposeContainer DOCKER_COMPOSE_CONTAINER =
-            new DockerComposeContainer(new File("src/test/resources/docker-compose.yml"));
+    public static final DockerComposeRule DOCKER_RULE = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
+            .build();
 
     @Parameterized.Parameter
     public String parameterName;
 
     protected AbstractScript script;
 
+    private SingleNodeRedisConnector singleNodeRedisConnector;
+    private RedisClusterConnector redisClusterConnector;
+
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {
-        return new Object[] {REDIS_SINGLE_CONNECTOR.getHost()};
+        return new Object[] {"redissingle"};
     }
 
     @Before
-    public void setUp() {
-        if (Objects.equals(parameterName, REDIS_SINGLE_CONNECTOR.getHost())) {
-            REDIS_SINGLE_CONNECTOR.flush();
-            script = new SingleNodeScript(REDIS_SINGLE_CONNECTOR.getJedisPool(), 0);
-        } else if (Objects.equals(parameterName, REDIS_CLUSTER_CONNECTOR.getHost())) {
-            REDIS_CLUSTER_CONNECTOR.flush();
-            script = new ClusterScript(REDIS_CLUSTER_CONNECTOR.getJedisCluster(), 12);
+    public void setUp() throws IOException, InterruptedException {
+        DockerPort servicePort = DOCKER_RULE.dockerCompose()
+                .ports(parameterName)
+                .stream()
+                .findFirst()
+                .get();
+
+        if (REDIS_SINGLE.equals(parameterName)) {
+            singleNodeRedisConnector = new SingleNodeRedisConnector(servicePort.getIp(), servicePort.getExternalPort());
+            singleNodeRedisConnector.flush();
+            script = new SingleNodeScript(singleNodeRedisConnector.getJedisPool(), 0);
+        } else if (REDIS_CLUSTER.equals(parameterName)) {
+            redisClusterConnector = new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
+            redisClusterConnector.flush();
+            script = new ClusterScript(redisClusterConnector.getJedisCluster(), 12);
         } else {
             throw new IllegalStateException("Unknown parameter: " + parameterName);
         }
