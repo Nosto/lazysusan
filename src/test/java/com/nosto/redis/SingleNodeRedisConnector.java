@@ -9,34 +9,18 @@
  ******************************************************************************/
 package com.nosto.redis;
 
-import org.junit.rules.ExternalResource;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-public class SingleNodeRedisConnector extends ExternalResource implements RedisConnector {
-    private final String host;
-    private final int port;
+public class SingleNodeRedisConnector implements RedisConnector {
     private final JedisPool jedisPool;
 
     public SingleNodeRedisConnector(String host, int port) {
-        this.host = host;
-        this.port = port;
         jedisPool = new JedisPool(host, port);
     }
 
     public JedisPool getJedisPool() {
         return jedisPool;
-    }
-
-    @Override
-    public String getHost() {
-        return host;
-    }
-
-    @Override
-    public int getPort() {
-        return port;
     }
 
     @Override

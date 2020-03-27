@@ -10,8 +10,5 @@
 package com.nosto.redis;
 
 public interface RedisConnector {
-    String getHost();
-    int getPort();
-
     void flush();
 }
