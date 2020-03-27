@@ -62,7 +62,7 @@ public abstract class AbstractScriptTest {
         } else if (REDIS_CLUSTER.equals(parameterName)) {
             redisClusterConnector = new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
             redisClusterConnector.flush();
-            script = new ClusterScript(redisClusterConnector.getJedisCluster(), 3);
+            script = new ClusterScript(redisClusterConnector.getJedisCluster(), 12);
         } else {
             throw new IllegalStateException("Unknown parameter: " + parameterName);
         }
