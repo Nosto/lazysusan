@@ -1,47 +1,21 @@
 version: '3.6'
-networks:
-  redissinglenet:
-    driver: bridge
-  redisclusternet:
-    driver: bridge
 services:
   redissingle:
-    image: redis:4.0
+    image: redis:5.0
     command: redis-server /etc/redis/redis.conf
-    networks:
-      - redissinglenet
     ports:
-      - "7000:7000"
+      - "7100:7100"
     volumes:
       - ./redissingle.conf:/etc/redis/redis.conf
-  redis1:
-    image: redis:4.0
-    command: redis-server /etc/redis/redis.conf
-    ports:
-      - "7001:7001"
-    networks:
-      - redisclusternet
-    volumes:
-      - ./rediscluster1.conf:/etc/redis/redis.conf
-  redis2:
-    image: redis:4.0
-    command: redis-server /etc/redis/redis.conf
-    ports:
-      - "7002:7002"
-    networks:
-      - redisclusternet
-    volumes:
-      - ./rediscluster2.conf:/etc/redis/redis.conf
-    depends_on:
-      - redis1
   rediscluster:
-    image: redis:4.0
-    command: redis-server /etc/redis/redis.conf
+    image: redis:5.0
+    command: start-cluster.sh
     ports:
+      - "7000:7000"
+      - "7001:7001"
+      - "7002:7002"
       - "7003:7003"
-    networks:
-      - redisclusternet
+      - "7004:7004"
+      - "7005:7005"
     volumes:
-      - ./rediscluster3.conf:/etc/redis/redis.conf
-    depends_on:
-      - redis2
+      - ./start-cluster.sh:/usr/local/bin/start-cluster.sh
