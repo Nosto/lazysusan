@@ -1,12 +1,20 @@
 version: '3.6'
 services:
+  redissingle3:
+    image: redis:3.0
+    command: redis-server --port 7101
+    ports:
+      - "7101:7101"
+  redissingle4:
+    image: redis:4.0
+    command: redis-server --port 7102
+    ports:
+      - "7102:7102"
   redissingle5:
     image: redis:5.0
-    command: redis-server --port 7000
+    command: redis-server --port 7103
     ports:
-      - "7000:7000"
-    volumes:
-      - ./redissingle.conf:/etc/redis/redis.conf
+      - "7103:7103"
   rediscluster5:
     image: redis:5.0
     command: start-cluster.sh
