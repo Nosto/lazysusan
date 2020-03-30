@@ -2,52 +2,52 @@ version: '3.6'
 services:
   redis3single:
     image: redis:3.0
-    command: redis-server --port 7101
+    command: redis-server --port 7000
     ports:
-      - "7101"
+      - "7000"
   redis4single:
     image: redis:4.0
-    command: redis-server --port 7102
+    command: redis-server --port 7001
     ports:
-      - "7102"
+      - "7001"
   redis5single:
     image: redis:5.0
-    command: redis-server --port 7103
+    command: redis-server --port 7002
     ports:
-      - "7103"
+      - "7002"
   redis3cluster:
     build: redis3-cluster
-    command: create-cluster-ruby.sh 7001 7006
+    command: create-cluster-ruby.sh 7010 7015
     ports:
-      - "7001:7001"
-      - "7002:7002"
-      - "7003:7003"
-      - "7004:7004"
-      - "7005:7005"
-      - "7006:7006"
-    volumes:
-      - ./create-cluster-ruby.sh:/usr/local/bin/create-cluster-ruby.sh
-  redis4cluster:
-    build: redis4-cluster
-    command: create-cluster-ruby.sh 7011 7016
-    ports:
+      - "7010:7010"
       - "7011:7011"
       - "7012:7012"
       - "7013:7013"
       - "7014:7014"
       - "7015:7015"
-      - "7016:7016"
     volumes:
       - ./create-cluster-ruby.sh:/usr/local/bin/create-cluster-ruby.sh
-  redis5cluster:
-    image: redis:5.0
-    command: create-cluster.sh 7021 7026
+  redis4cluster:
+    build: redis4-cluster
+    command: create-cluster-ruby.sh 7020 7025
     ports:
+      - "7020:7020"
       - "7021:7021"
       - "7022:7022"
       - "7023:7023"
       - "7024:7024"
       - "7025:7025"
-      - "7026:7026"
+    volumes:
+      - ./create-cluster-ruby.sh:/usr/local/bin/create-cluster-ruby.sh
+  redis5cluster:
+    image: redis:5.0
+    command: create-cluster.sh 7030 7035
+    ports:
+      - "7030:7030"
+      - "7031:7031"
+      - "7032:7032"
+      - "7033:7033"
+      - "7034:7034"
+      - "7035:7035"
     volumes:
       - ./create-cluster.sh:/usr/local/bin/create-cluster.sh
