@@ -1,7 +1,7 @@
 #!/bin/sh
 
 NODES=""
-for PORT in "$@"; do
+for PORT in `seq $1 $2`; do
   redis-server --port $PORT --cluster-enabled yes --cluster-config-file nodes-$PORT.conf \
    --cluster-node-timeout 5000 --appendonly yes --appendfilename appendonly-$PORT.aof \
    --dbfilename dump-$PORT.rdb --logfile $PORT.log --daemonize yes
