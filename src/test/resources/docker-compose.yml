@@ -17,7 +17,7 @@ services:
       - "7103:7103"
   rediscluster5:
     image: redis:5.0
-    command: start-cluster.sh yes 7001 7002 7003 7004 7005 7006
+    command: start-cluster.sh
     ports:
       - "7001:7001"
       - "7002:7002"
