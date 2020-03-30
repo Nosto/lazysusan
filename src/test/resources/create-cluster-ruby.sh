@@ -9,6 +9,6 @@ for PORT in `seq $1 $2`; do
    NODES="$NODES 127.0.0.1:$PORT"
 done
 
-echo "yes" | eval ruby /data/redis/src/redis-trib.rb create --replicas 1 $NODES
+echo "yes" | eval ruby /redis-src/redis/src/redis-trib.rb create --replicas 1 $NODES
 
 tail -f $1.log
