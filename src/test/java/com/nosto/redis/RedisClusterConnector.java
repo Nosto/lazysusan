@@ -18,7 +18,7 @@ public class RedisClusterConnector implements RedisConnector {
     private final JedisCluster jedisCluster;
 
     public RedisClusterConnector(String host, int port) {
-        jedisCluster = new JedisCluster(new HostAndPort(host, port), 1000);
+        jedisCluster = new JedisCluster(new HostAndPort(host, port));
     }
 
     public JedisCluster getJedisCluster() {
