@@ -31,10 +31,10 @@ public abstract class AbstractScriptTest {
     // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
     private static final Map<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
             .put("redis3single", true)
-            .put("redis4single", true)
-            .put("redis5single", true)
             .put("redis3cluster", false)
+            .put("redis4single", true)
             .put("redis4cluster", false)
+            .put("redis5single", true)
             .put("redis5cluster", false)
             .build();
 

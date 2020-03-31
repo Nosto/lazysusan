@@ -16,7 +16,13 @@ services:
     ports:
       - "7002"
   redis3cluster:
-    build: redis3-cluster
+    build:
+      context: redis-ruby
+      args:
+        img_version: 3.0
+        gem_version: 3.0.7
+        src_version: 3.0.7
+    image: redis-ruby:3
     command: create-cluster.sh 7010 7015
     ports:
       - "7010:7010"
@@ -28,7 +34,13 @@ services:
     volumes:
       - ./create-cluster.sh:/usr/local/bin/create-cluster.sh
   redis4cluster:
-    build: redis4-cluster
+    build:
+      context: redis-ruby
+      args:
+        img_version: 4.0
+        gem_version: 4.0.3
+        src_version: 4.0.14
+    image: redis-ruby:4
     command: create-cluster.sh 7020 7025
     ports:
       - "7020:7020"
