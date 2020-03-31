@@ -9,6 +9,10 @@ for PORT in `seq $1 $2`; do
    NODES="$NODES 127.0.0.1:$PORT"
 done
 
-echo "yes" | eval redis-cli --cluster create $NODES --cluster-replicas 1
+if [ -f /redis-src/redis/src/redis-trib.rb ]; then
+  echo "yes" | eval ruby /redis-src/redis/src/redis-trib.rb create --replicas 1 $NODES
+else
+  echo "yes" | eval redis-cli --cluster create $NODES --cluster-replicas 1
+fi
 
 tail -f $1.log
