@@ -25,5 +25,6 @@ jobs:
       image: docker.pkg.github.com/mridang/docker-idea/intellijidea:2020.1
       volumes:
         - my_docker_volume:/app
-    - name: Build with Gradle
-      run: pwd
+    steps:
+      - name: Run in container
+        run: echo This job does specify a container.
