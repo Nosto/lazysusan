@@ -9,8 +9,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v2
+
+    - uses: azure/docker-login@v1
+      with:
+        login-server: 'docker.pkg.github.com'
+        username: 'mridang'
+        password: 'a17a5db94d5f190cbecdd7aecff54a57284f3097'
 
     - name: Set up JDK
       uses: actions/setup-java@v1
