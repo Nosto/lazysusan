@@ -35,7 +35,7 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     container:
-      image: docker.pkg.github.com/mridang/docker-idea/intellijidea:2020.1
+      image: mridang/intellijidea:2020.1
       volumes:
         - my_docker_volume:/app
     steps:
