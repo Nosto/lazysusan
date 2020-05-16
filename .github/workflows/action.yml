@@ -20,6 +20,16 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
+    - name: Archive code sniffing results
+      uses: actions/upload-artifact@v1
+      with:
+        name: gradle-build
+        path: build
+
+    - name: Report annotations
+      id: report-annotations
+      run: pwd
+
   inspect:
     runs-on: ubuntu-latest
     container:
