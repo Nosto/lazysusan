@@ -21,6 +21,7 @@ jobs:
       run: ./gradlew build
 
   inspect:
+    runs-on: ubuntu-latest
     container:
       image: docker.pkg.github.com/mridang/docker-idea/intellijidea:2020.1
       volumes:
