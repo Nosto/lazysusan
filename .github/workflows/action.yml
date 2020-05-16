@@ -8,9 +8,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK 1.8
@@ -21,3 +19,11 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
+
+  inspect:
+    container:
+      image: docker.pkg.github.com/mridang/docker-idea/intellijidea:2020.1
+      volumes:
+        - my_docker_volume:/app
+    - name: Build with Gradle
+      run: pwd
