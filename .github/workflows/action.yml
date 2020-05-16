@@ -38,4 +38,4 @@ jobs:
       image: mridang/intellijidea:2020.1
     steps:
       - name: Run in container
-        run: ls -lah /github/home
+        run: ls -lah /github/workflow/
