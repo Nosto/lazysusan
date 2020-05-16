@@ -11,10 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
     - name: Set up JDK
       uses: actions/setup-java@v1
       with:
         java-version: 14
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
@@ -27,7 +29,6 @@ jobs:
         path: build
 
     - name: Report annotations
-      id: report-annotations
       run: pwd
 
   inspect:
