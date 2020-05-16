@@ -36,8 +36,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: mridang/intellijidea:2020.1
-      volumes:
-        - .:/app
     steps:
       - name: Run in container
         run: ls -lah /
