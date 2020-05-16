@@ -37,7 +37,7 @@ jobs:
     container:
       image: mridang/intellijidea:2020.1
       volumes:
-        - my_docker_volume:/app
+          - my_docker_volume:/app
     steps:
       - name: Run in container
-        run: echo This job does specify a container.
+        run: ls -lah /
