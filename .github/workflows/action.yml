@@ -35,19 +35,11 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
 
-    container:
-      image: mridang/intellijidea:2020.1
-
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Install xsltproc
-        run: |
-          apt-get update -y
-          apt-get install -y xsltproc
-
-      - name: Run IDE inspection
-        run: /opt/ide/bin/inspect.sh  . ./.idea/inspectionProfiles/Project_Default.xml ./output -d . -v2
-
-      - name: Report annotations
-        run: find ./output -name '*.xml' ! -name '.descriptions.xml' | xargs xsltproc problems.xslt
+    - name: Run IntelliJ
+      uses: mridang/action-idea@master
+      with:
+        target: .
+        profile: ./.idea/inspectionProfiles/Project_Default.xml
+        output: ./output
+        verbosity: v2
