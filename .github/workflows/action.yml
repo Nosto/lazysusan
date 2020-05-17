@@ -46,6 +46,9 @@ jobs:
           apt-get update -y
           apt-get install -y xsltproc
 
+      - name: Poo
+        run: xsltproc --dumpextensions
+
       - name: Run in container
         run: /opt/ide/bin/inspect.sh  . ./.idea/inspectionProfiles/Project_Default.xml ./output -d . -v2
 
