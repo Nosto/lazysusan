@@ -44,5 +44,8 @@ jobs:
       - name: Run in container
         run: /opt/ide/bin/inspect.sh  . ./.idea/inspectionProfiles/Project_Default.xml ./output -d . -v2
 
+      - name: Run in container
+        run: apt-get install xsltproc
+
       - name: Whatever
         run: find ./output -name '*.xml' ! -name '.descriptions.xml' | xargs xsltproc problems.xslt
