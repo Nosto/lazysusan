@@ -42,4 +42,4 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Run in container
-        run: find /__w
+        run: find .
