@@ -34,8 +34,13 @@ jobs:
 
   inspect:
     runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
     container:
       image: mridang/intellijidea:2020.1
+
     steps:
       - name: Run in container
         run: find /__w
