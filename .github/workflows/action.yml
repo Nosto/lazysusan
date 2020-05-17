@@ -41,16 +41,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Run in container
+      - name: Install xsltproc
         run: |
           apt-get update -y
           apt-get install -y xsltproc
 
-      - name: Poo
-        run: xsltproc --dumpextensions
-
-      - name: Run in container
+      - name: Run IDE inspection
         run: /opt/ide/bin/inspect.sh  . ./.idea/inspectionProfiles/Project_Default.xml ./output -d . -v2
 
-      - name: Whatever
+      - name: Report annotations
         run: find ./output -name '*.xml' ! -name '.descriptions.xml' | xargs xsltproc problems.xslt
