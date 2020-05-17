@@ -42,4 +42,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Run in container
-        run: /opt/ide/bin/inspect.sh  . ./.idea/inspectionProfiles/Project_Default.xml ./output -d . -format plain -v2
+        run: /opt/ide/bin/inspect.sh  . ./.idea/inspectionProfiles/Project_Default.xml ./output -d . -v2
+
+      - name: Whatever
+        run: find .
