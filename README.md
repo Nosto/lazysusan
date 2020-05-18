@@ -1,5 +1,5 @@
 # Lazy Susan
-Lazy Susan is a Redis-based FIFO multi-tenant queue.
+Lazy Susan is a Redis-based multi-tenant FIFO queue.
 
 ## Connecting to Redis
 Lazy Susan works with either a single Redis node or a Redis cluster. Simply use the corresponding `com.nosto.redis.queue.MultitenantQueue` constructor, depending on which Redis configuration you wish to use.
@@ -7,7 +7,7 @@ Lazy Susan works with either a single Redis node or a Redis cluster. Simply use 
 ## Dequeue Interval
 Implement the `com.nosto.redis.queue.DequeueIntervalProvider` interface to specify the rate at which messages are dequeued.
 
-## Enqeueing Messages
+## Enqueueing Messages
 Call `com.nosto.redis.queue.MultitenantQueue.enqueue` to enqueue a message.
 
 ### De-duplication 
