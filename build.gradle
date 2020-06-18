@@ -8,6 +8,10 @@ plugins {
 group 'com.nosto'
 version '1.1.0'
 
+checkstyle {
+    ignoreFailures = project.hasProperty("ignoreCheckstyleFailures")
+}
+
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8

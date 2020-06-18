@@ -17,7 +17,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build --exclude-task=test
+        run: ./gradlew build --exclude-task=test -PignoreCheckstyleFailures=true
 
       - name: Checkstyle
         uses: jwgmeligmeyling/checkstyle-github-action@v1.2
