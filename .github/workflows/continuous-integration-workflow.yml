@@ -20,12 +20,9 @@ jobs:
         run: ./gradlew build --exclude-task=test
 
       - name: Checkstyle
-        uses: nikitasavinov/checkstyle-action@0.2.0
+        uses: jwgmeligmeyling/checkstyle-github-action@v1.2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: 'github-pr-check'
-          tool_name: 'testtool'
-          checkstyle_config: ./config/checkstyle/checkstyle.xml
+          path: ./build/reports/checkstyle/*.xml
 
       - name: Archive build output
         uses: actions/upload-artifact@v1
