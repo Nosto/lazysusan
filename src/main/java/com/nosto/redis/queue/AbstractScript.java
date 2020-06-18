@@ -42,7 +42,7 @@ abstract class AbstractScript {
      * @param tenantMessage The message to be added.
      * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
-    EnqueueResult enqueue(Instant now,Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
+    EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
         boolean result = TRUE_RESPONSE.equals(call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
