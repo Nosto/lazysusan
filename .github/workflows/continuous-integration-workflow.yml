@@ -17,12 +17,15 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build --exclude-task=test -PignoreCheckstyleFailures=true
+        run: ./gradlew build --exclude-task=test -PignoreCheckFailures=true
 
       - name: Checkstyle
         uses: jwgmeligmeyling/checkstyle-github-action@v1.2
         with:
           path: ./build/reports/checkstyle/*.xml
+
+      - name: Test Report
+          uses: scacap/action-surefire-report@v1
 
       - name: Archive build output
         uses: actions/upload-artifact@v1
