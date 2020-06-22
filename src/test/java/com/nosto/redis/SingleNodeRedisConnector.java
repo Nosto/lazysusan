@@ -9,16 +9,14 @@
  ******************************************************************************/
 package com.nosto.redis;
 
-import org.junit.rules.ExternalResource;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-public class SingleNodeRedisConnector extends ExternalResource implements RedisConnector {
+public class SingleNodeRedisConnector implements RedisConnector {
     private final JedisPool jedisPool;
 
-    public SingleNodeRedisConnector() {
-        jedisPool = new JedisPool("redis.dev.nos.to", 6379);
+    public SingleNodeRedisConnector(String host, int port) {
+        jedisPool = new JedisPool(host, port);
     }
 
     public JedisPool getJedisPool() {
