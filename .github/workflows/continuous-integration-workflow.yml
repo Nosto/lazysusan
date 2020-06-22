@@ -26,6 +26,8 @@ jobs:
 
       - name: Test Report
         uses: scacap/action-surefire-report@v1.0.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Archive build output
         uses: actions/upload-artifact@v1
