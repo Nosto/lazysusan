@@ -25,9 +25,10 @@ jobs:
           path: ./build/reports/checkstyle/*.xml
 
       - name: Test Report
-        uses: ashley-taylor/junit-report-annotations-action@v1.1
+        uses: scacap/action-surefire-report@v1.0.2
         with:
-          access-token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          report_paths: ./build/test-results/test/*.xml
 
       - name: Archive build output
         uses: actions/upload-artifact@v1
