@@ -37,7 +37,7 @@ public class MultitenantQueueTest extends AbstractScriptTest {
         Map<String, TenantStatistics> qStats = queue.getStatistics()
                 .getTenantStatistics();
         assertEquals(1, qStats.size());
-        assertEquals(new TenantStatistics("t1", 0, 2), qStats.get("t1"));
+        assertEquals(new TenantStatistics("t2", 0, 2), qStats.get("t1"));
 
         queue.delete("t1", "k1");
 
