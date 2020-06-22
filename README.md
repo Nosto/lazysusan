@@ -1,3 +1,4 @@
+![Continuous Integration](https://github.com/Nosto/lazysusan/workflows/Continuous%20Integration/badge.svg)
 # Lazy Susan
 Lazy Susan is a Redis-based multi-tenant FIFO queue.
 
