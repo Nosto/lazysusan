@@ -31,8 +31,8 @@ public class MultitenantQueueTest extends AbstractScriptTest {
 
     @Test
     public void delete() {
-        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), 0);
-        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), 0);
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
 
         Map<String, TenantStatistics> qStats = queue.getStatistics()
                 .getTenantStatistics();
@@ -64,8 +64,8 @@ public class MultitenantQueueTest extends AbstractScriptTest {
 
     @Test
     public void dequeue() {
-        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), 0);
-        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), 0);
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
 
         List<TenantMessage> q1Messages = queue.dequeue(Duration.ofSeconds(2), 10);
         assertEquals(Arrays.asList(
@@ -79,8 +79,8 @@ public class MultitenantQueueTest extends AbstractScriptTest {
 
     @Test
     public void peek() {
-        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), 0);
-        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), 0);
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
 
         assertEquals(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)),
                 queue.peek("t1").get());
@@ -89,8 +89,8 @@ public class MultitenantQueueTest extends AbstractScriptTest {
 
     @Test
     public void purge() {
-        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), 0);
-        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), 0);
+        queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
+        queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
 
         assertEquals(2, queue.purge("t1"));
     }

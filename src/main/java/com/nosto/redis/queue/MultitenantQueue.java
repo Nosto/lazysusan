@@ -57,13 +57,13 @@ public class MultitenantQueue {
     /**
      * Enqueue a message for a tenant.
      * @param tenantMessage The message to be enqueued.
-     * @param dequeueIntervalMillis The interval at which the tenant's messages can be de-queued. If the value is 10,
-     *                              a tenant's message can be de-queued once every 10 milliseconds. This value
-     *                              overwrites the value used to enqueue previous messages for the same tenant.
+     * @param dequeueInterval The interval at which the tenant's messages can be de-queued. If the value is
+     *                       10 milliseconds, a tenant's message can be de-queued once every 10 milliseconds.
+     *                       This value overwrites the value used to enqueue previous messages for the same tenant.
      * @return How the message was enqueued.
      */
-    public EnqueueResult enqueue(TenantMessage tenantMessage, long dequeueIntervalMillis) {
-        return redisScript.enqueue(Instant.now(), dequeueIntervalMillis, queueName, tenantMessage);
+    public EnqueueResult enqueue(TenantMessage tenantMessage, Duration dequeueInterval) {
+        return redisScript.enqueue(Instant.now(), dequeueInterval, queueName, tenantMessage);
     }
 
     /**
