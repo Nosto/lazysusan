@@ -24,21 +24,17 @@ import redis.clients.jedis.JedisPool;
 public class MultitenantQueue {
     private final String queueName;
     private final AbstractScript redisScript;
-    private final DequeueIntervalProvider dequeueIntervalProvider;
 
     /**
      * Connect the multi-tenant queue to a single Redis node.
      * @param queueName The name of the queue.
      * @param jedisPool The Redis node to connect to.
      * @param dbIndex The index of the DB to use.
-     * @param dequeueIntervalProvider {@link DequeueIntervalProvider} is used to determine the interval at which a
-     *        single message can be de-queued for a tenant.
      */
     public MultitenantQueue(String queueName,
                             JedisPool jedisPool,
-                            int dbIndex,
-                            DequeueIntervalProvider dequeueIntervalProvider) {
-        this(queueName, new SingleNodeScript(jedisPool, dbIndex), dequeueIntervalProvider);
+                            int dbIndex) {
+        this(queueName, new SingleNodeScript(jedisPool, dbIndex));
     }
 
     /**
@@ -46,30 +42,28 @@ public class MultitenantQueue {
      * @param queueName The name of the queue.
      * @param jedisCluster The Redis cluster to connect to.
      * @param shards The number of shards used for balancing the data across the cluster.
-     * @param dequeueIntervalProvider {@link DequeueIntervalProvider} is used to determine the interval at which a
-     *        single message can be de-queued for a tenant.
      */
     public MultitenantQueue(String queueName,
                             JedisCluster jedisCluster,
-                            int shards,
-                            DequeueIntervalProvider dequeueIntervalProvider) {
-        this(queueName, new ClusterScript(jedisCluster, shards), dequeueIntervalProvider);
+                            int shards) {
+        this(queueName, new ClusterScript(jedisCluster, shards));
     }
 
-    MultitenantQueue(String queueName, AbstractScript redisScript, DequeueIntervalProvider dequeueIntervalProvider) {
+    MultitenantQueue(String queueName, AbstractScript redisScript) {
         this.queueName = Objects.requireNonNull(queueName);
         this.redisScript = redisScript;
-        this.dequeueIntervalProvider = dequeueIntervalProvider;
     }
 
     /**
      * Enqueue a message for a tenant.
      * @param tenantMessage The message to be enqueued.
+     * @param dequeueIntervalMillis The interval at which the tenant's messages can be de-queued. If the value is 10,
+     *                              a tenant's message can be de-queued once every 10 milliseconds. This value
+     *                              overwrites the value used to enqueue previous messages for the same tenant.
      * @return How the message was enqueued.
      */
-    public EnqueueResult enqueue(TenantMessage tenantMessage) {
-        Duration dequeueInterval = dequeueIntervalProvider.getDequeueInterval(tenantMessage.getTenant());
-        return redisScript.enqueue(Instant.now(), dequeueInterval, queueName, tenantMessage);
+    public EnqueueResult enqueue(TenantMessage tenantMessage, long dequeueIntervalMillis) {
+        return redisScript.enqueue(Instant.now(), dequeueIntervalMillis, queueName, tenantMessage);
     }
 
     /**

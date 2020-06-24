@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,17 +38,18 @@ abstract class AbstractScript {
      * Adds a message to a queue.
      *
      * @param now Time now
-     * @param invisiblePeriod When the message becomes visible if the tenant does not have earlier messages in queue.
+     * @param invisiblePeriodMillis When the message becomes visible if the tenant does not
+     *                             have earlier messages in queue.
      * @param queue The name of the queue.
      * @param tenantMessage The message to be added.
      * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
-    EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
+    EnqueueResult enqueue(Instant now, long invisiblePeriodMillis, String queue, TenantMessage tenantMessage) {
         boolean result = TRUE_RESPONSE.equals(call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
                 bytes(now.toEpochMilli()),
-                bytes(now.plus(invisiblePeriod).toEpochMilli()),
+                bytes(now.plus(invisiblePeriodMillis, ChronoUnit.MILLIS).toEpochMilli()),
                 bytes(tenantMessage.getTenant()),
                 bytes(tenantMessage.getKey()),
                 tenantMessage.getPayload()));
