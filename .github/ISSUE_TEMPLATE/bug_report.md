@@ -7,8 +7,8 @@ assignees: ''
 
 ---
 
-**Description**  
-<!-- The version used that was affected by this bug. -->
+**Versions Used**  
+<!-- The ver. -->
 
 **Description**  
 <!-- A clear and concise description of the problem. -->

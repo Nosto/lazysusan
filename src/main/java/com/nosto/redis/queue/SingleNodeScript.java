@@ -1,12 +1,12 @@
-/*******************************************************************************
- * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
- * <p>
- * This software is the confidential and proprietary information of
- * Nosto Solutions Ltd ("Confidential Information"). You shall not
- * disclose such Confidential Information and shall use it only in
- * accordance with the terms of the agreement you entered into with
- * Nosto Solutions Ltd.
- ******************************************************************************/
+/*
+ *  Copyright (c) 2020 Nosto Solutions Ltd All Rights Reserved.
+ *
+ *  This software is the confidential and proprietary information of
+ *  Nosto Solutions Ltd ("Confidential Information"). You shall not
+ *  disclose such Confidential Information and shall use it only in
+ *  accordance with the terms of the agreement you entered into with
+ *  Nosto Solutions Ltd.
+ */
 package com.nosto.redis.queue;
 
 import java.time.Duration;
@@ -43,6 +43,7 @@ class SingleNodeScript extends AbstractScript {
                 bytes(maxKeys)));
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
         List<TenantMessage> messages = unpackTenantMessage((List<byte[]>) call(Function.PEEK,

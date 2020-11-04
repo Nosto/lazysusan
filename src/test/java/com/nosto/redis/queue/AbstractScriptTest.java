@@ -1,12 +1,12 @@
-/*******************************************************************************
- * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
- * <p>
- * This software is the confidential and proprietary information of
- * Nosto Solutions Ltd ("Confidential Information"). You shall not
- * disclose such Confidential Information and shall use it only in
- * accordance with the terms of the agreement you entered into with
- * Nosto Solutions Ltd.
- ******************************************************************************/
+/*
+ *  Copyright (c) 2020 Nosto Solutions Ltd All Rights Reserved.
+ *
+ *  This software is the confidential and proprietary information of
+ *  Nosto Solutions Ltd ("Confidential Information"). You shall not
+ *  disclose such Confidential Information and shall use it only in
+ *  accordance with the terms of the agreement you entered into with
+ *  Nosto Solutions Ltd.
+ */
 package com.nosto.redis.queue;
 
 import java.io.IOException;
@@ -53,13 +53,14 @@ public abstract class AbstractScriptTest {
         return CONTAINERS.keySet().toArray();
     }
 
+    @SuppressWarnings("Since15")
     @Before
     public void setUp() throws IOException, InterruptedException {
         DockerPort servicePort = DOCKER_RULE.dockerCompose()
                 .ports(dockerService)
                 .stream()
                 .findFirst()
-                .get();
+                .orElseThrow();
 
         if (CONTAINERS.get(dockerService)) {
             SingleNodeRedisConnector singleNodeRedisConnector =
