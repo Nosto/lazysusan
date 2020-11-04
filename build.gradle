@@ -1,4 +1,4 @@
-import net.ltgt.gradle.errorprone.CheckSeverity
+import net.ltgt.gradle.errorprone.*
 
 buildscript {
     buildscript {
@@ -34,8 +34,8 @@ version '2.0.0'
 java {
     withJavadocJar()
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_1_9
-    targetCompatibility = JavaVersion.VERSION_1_9
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks.withType(JavaCompile).configureEach {
