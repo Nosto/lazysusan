@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~  Copyright (c) 2020 Nosto Solutions Ltd All Rights Reserved.
+  ~
+  ~  This software is the confidential and proprietary information of
+  ~  Nosto Solutions Ltd ("Confidential Information"). You shall not
+  ~  disclose such Confidential Information and shall use it only in
+  ~  accordance with the terms of the agreement you entered into with
+  ~  Nosto Solutions Ltd.
+  -->
+
 <Configuration status="warn" name="UnitTest" packages="">
     <Appenders>
         <Console name="STDOUT" target="SYSTEM_OUT">
