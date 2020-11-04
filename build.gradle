@@ -40,7 +40,7 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.errorprone.nullaway {
-        severity = CheckSeverity.ERROR
+        severity = CheckSeverity.OFF
     }
 }
 
@@ -77,7 +77,7 @@ dependencies {
 // specified on the java-compile tasks. The only option that be specified here
 // is the name of the root package to be analysed.
 nullaway {
-    annotatedPackages.add("com.nostod")
+    annotatedPackages.add("com.nosto")
 }
 
 // Configuration for the Spotbugs plugin. It seems that it isn't possible to define
