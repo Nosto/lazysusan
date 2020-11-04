@@ -21,7 +21,6 @@
 <!--- Upon PR's approval, link the wiki page for your corresponding changes here. -->
 
 ## Checklist:
-- [ ] My code follows the code style of this project.
 - [ ] I have updated the documentation accordingly.
 - [ ] I have assigned the correct milestone or created one if non-existent.
 - [ ] I have correctly labeled this pull request.
