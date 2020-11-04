@@ -93,19 +93,16 @@ spotbugs {
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 spotbugsMain {
+    //noinspection GroovyAssignabilityCheck
     reports {
-        xml {
-            enabled = true
-        }
+        xml.enabled = true
     }
 }
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 spotbugsTest {
     reports {
-        xml {
-            enabled = true
-        }
+        xml.enabled = true
     }
 }
 
@@ -123,24 +120,16 @@ checkstyle {
 // and must be explicitly disabled
 checkstyleMain {
     reports {
-        xml {
-            enabled = true
-        }
-        html {
-            enabled = false
-        }
+        xml.enabled = true
+        html.enabled = false
     }
 }
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 checkstyleTest {
     reports {
-        xml {
-            enabled = true
-        }
-        html {
-            enabled = false
-        }
+        xml.enabled = true
+        html.enabled = false
     }
 }
 
@@ -156,15 +145,9 @@ jacoco {
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 jacocoTestReport {
     reports {
-        csv {
-            enabled = true
-        }
-        xml {
-            enabled = false
-        }
-        html {
-            enabled = true
-        }
+        csv.enabled = true
+        xml.enabled = false
+        html.enabled = true
     }
 }
 
