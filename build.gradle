@@ -1,21 +1,21 @@
 import net.ltgt.gradle.errorprone.CheckSeverity
 
 buildscript {
-	buildscript {
-		repositories {
-			google()
-			mavenCentral()
-			gradlePluginPortal()
-			jcenter()
-		}
-		dependencies {
-			classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.8"
-			classpath "net.ltgt.gradle:gradle-nullaway-plugin:0.2"
-			classpath "com.diffplug.spotless:spotless-plugin-gradle:3.23.0"
-			classpath "gradle.plugin.com.github.spotbugs.snom:spotbugs-gradle-plugin:4.0.5"
-			classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.5"
-		}
-	}
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+            gradlePluginPortal()
+            jcenter()
+        }
+        dependencies {
+            classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.8"
+            classpath "net.ltgt.gradle:gradle-nullaway-plugin:0.2"
+            classpath "com.diffplug.spotless:spotless-plugin-gradle:3.23.0"
+            classpath "gradle.plugin.com.github.spotbugs.snom:spotbugs-gradle-plugin:4.0.5"
+            classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.5"
+        }
+    }
 }
 
 apply plugin: 'java'
@@ -32,52 +32,52 @@ group 'com.nosto'
 version '1.1.0'
 
 java {
-	withJavadocJar()
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_1_9
-	targetCompatibility = JavaVersion.VERSION_1_9
+    withJavadocJar()
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
 }
 
 tasks.withType(JavaCompile).configureEach {
-	options.errorprone.nullaway {
-		severity = CheckSeverity.ERROR
-	}
+    options.errorprone.nullaway {
+        severity = CheckSeverity.ERROR
+    }
 }
 
 
 repositories {
-	google()
-	mavenCentral()
-	jcenter()
-	maven {
-		url 'https://dl.bintray.com/palantir/releases'
-	}
+    google()
+    mavenCentral()
+    jcenter()
+    maven {
+        url 'https://dl.bintray.com/palantir/releases'
+    }
 }
 
 dependencies {
-	testImplementation 'junit:junit:4.12'
-	testCompile group: 'org.mockito', name: 'mockito-core', version: '3.0.0'
-	testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
-	testCompile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8.2'
-	testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: '1.4.2'
-	compileOnly group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
-	compileOnly group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8.2'
-	compile group: 'redis.clients', name: 'jedis', version: '2.9.0'
-	compile group: 'commons-io', name: 'commons-io', version: '2.6'
-	compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.9'
-	compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9'
-	compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.9'
-	compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
-	errorprone "com.uber.nullaway:nullaway:0.7.9"
-	errorprone "com.google.errorprone:error_prone_core:2.3.4"
-	spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.10.1'
+    testImplementation 'junit:junit:4.12'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '3.0.0'
+    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
+    testCompile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8.2'
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: '1.4.2'
+    compileOnly group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
+    compileOnly group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8.2'
+    compile group: 'redis.clients', name: 'jedis', version: '2.9.0'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.9'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.9'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+    errorprone "com.uber.nullaway:nullaway:0.7.9"
+    errorprone "com.google.errorprone:error_prone_core:2.3.4"
+    spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.10.1'
 }
 
 // Configuration for the nullaway extension. The rest of the parameters must be
 // specified on the java-compile tasks. The only option that be specified here
 // is the name of the root package to be analysed.
 nullaway {
-	annotatedPackages.add("com.nostod")
+    annotatedPackages.add("com.nostod")
 }
 
 // Configuration for the Spotbugs plugin. It seems that it isn't possible to define
@@ -86,27 +86,27 @@ nullaway {
 // I'm not sure why the tool version is defined here and it isn't managed as a
 // dependency.
 spotbugs {
-	toolVersion = '4.0.2'
-	ignoreFailures = true
-	effort = 'max'
+    toolVersion = '4.0.2'
+    ignoreFailures = true
+    effort = 'max'
 }
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 spotbugsMain {
-	reports {
-		xml {
-			enabled = true
-		}
-	}
+    reports {
+        xml {
+            enabled = true
+        }
+    }
 }
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 spotbugsTest {
-	reports {
-		xml {
-			enabled = true
-		}
-	}
+    reports {
+        xml {
+            enabled = true
+        }
+    }
 }
 
 // Configuration for the Checkstyle plugin. It seems that it isn't possible to define
@@ -115,33 +115,33 @@ spotbugsTest {
 // I'm not sure why the tool version is defined here and it isn't managed as a
 // dependency.
 checkstyle {
-	toolVersion "7.6.1"
-	config resources.text.fromFile("config/checkstyle/checkstyle.xml")
+    toolVersion "7.6.1"
+    config resources.text.fromFile("config/checkstyle/checkstyle.xml")
 }
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed
 // and must be explicitly disabled
 checkstyleMain {
-	reports {
-		xml {
-			enabled = true
-		}
-		html {
-			enabled = false
-		}
-	}
+    reports {
+        xml {
+            enabled = true
+        }
+        html {
+            enabled = false
+        }
+    }
 }
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 checkstyleTest {
-	reports {
-		xml {
-			enabled = true
-		}
-		html {
-			enabled = false
-		}
-	}
+    reports {
+        xml {
+            enabled = true
+        }
+        html {
+            enabled = false
+        }
+    }
 }
 
 // Configuration for the Jacoco plugin. It seems that it isn't possible to define
@@ -150,66 +150,66 @@ checkstyleTest {
 // I'm not sure why the tool version is defined here and it isn't managed as a
 // dependency.
 jacoco {
-	toolVersion = "0.8.5"
+    toolVersion = "0.8.5"
 }
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 jacocoTestReport {
-	reports {
-		csv {
-			enabled = true
-		}
-		xml {
-			enabled = false
-		}
-		html {
-			enabled = true
-		}
-	}
+    reports {
+        csv {
+            enabled = true
+        }
+        xml {
+            enabled = false
+        }
+        html {
+            enabled = true
+        }
+    }
 }
 
 test {
-	testLogging {
-		events "passed", "skipped", "failed"
-	}
-	reports {
-		junitXml.enabled = true
-		html.enabled = true
-	}
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    reports {
+        junitXml.enabled = true
+        html.enabled = true
+    }
 }
 
 javadoc {
-	options.addBooleanOption('html5', true)
+    options.addBooleanOption('html5', true)
 }
 
 sourcesJar {
-	archiveClassifier.set('sources')
-	from sourceSets.main.allSource
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
 }
 
 javadocJar {
-	archiveClassifier.set('javadoc')
-	from javadoc.destinationDir
+    archiveClassifier.set('javadoc')
+    from javadoc.destinationDir
 }
 
 artifacts {
-	archives javadocJar
-	archives sourcesJar
+    archives javadocJar
+    archives sourcesJar
 }
 
 publishing {
-	repositories {
-		maven {
-			name = "GitHubPackages"
-			url = uri("https://maven.pkg.github.com/nosto/lazysusan")
-			credentials {
-				username = "mridang"
-				password = "*******"
-			}
-		}
-	}
-	publications {
-		maven(MavenPublication) {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/nosto/lazysusan")
+            credentials {
+                username = "mridang"
+                password = "*******"
+            }
+        }
+    }
+    publications {
+        maven(MavenPublication) {
             from components.java
 
             artifact sourcesJar
@@ -223,7 +223,7 @@ publishing {
 }
 
 javadoc {
-    if(JavaVersion.current().isJava9Compatible()) {
+    if (JavaVersion.current().isJava9Compatible()) {
         options.addBooleanOption('html5', true)
     }
 }
