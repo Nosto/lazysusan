@@ -7,22 +7,14 @@ assignees: ''
 
 ---
 
-**Magento 2 version(s) used**: x.y.z
-**Extension version(s) affected**: x.y.z
+**Description**  
+<!-- The version used that was affected by this bug. -->
 
 **Description**  
 <!-- A clear and concise description of the problem. -->
 
 **How to reproduce**  
 <!-- Code, config and/or steps needed to reproduce the problem. -->
-
-**Magento 2 mode**
-- [ ] Developer 
-- [ ] Production
-
-**Full page cache**
-- [ ] Enabled 
-- [ ] Disabled
 
 **Possible Solution**  
 <!--- Optional: only if you have suggestions on a fix/reason for the bug -->

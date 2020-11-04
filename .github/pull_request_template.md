@@ -23,11 +23,9 @@
 ## Checklist:
 - [ ] My code follows the code style of this project.
 - [ ] I have updated the documentation accordingly.
-- [ ] All new and existing tests passed.
 - [ ] I have assigned the correct milestone or created one if non-existent.
 - [ ] I have correctly labeled this pull request.
 - [ ] I have linked the corresponding issue in this description.
-- [ ] I have updated the corresponding Jira ticket.
 - [ ] I have requested a review from at least 2 reviewers
 - [ ] I have checked the base branch of this pull request
 - [ ] I have checked my code for any possible security vulnerabilities
