@@ -9,48 +9,68 @@
  ******************************************************************************/
 package com.nosto.redis.queue;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.io.IOException;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import com.google.common.collect.ImmutableMap;
 import com.nosto.redis.RedisClusterConnector;
-import com.nosto.redis.RedisConnector;
 import com.nosto.redis.SingleNodeRedisConnector;
+import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.connection.DockerPort;
 
 /**
  * Extend this class to run tests against a single Redis node and a Redis cluster.
  */
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
-    @ClassRule
-    public static RedisClusterConnector jedisCluster = new RedisClusterConnector();
+    // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
+    private static final Map<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
+            .put("redis3single", true)
+            .put("redis3cluster", false)
+            .put("redis4single", true)
+            .put("redis4cluster", false)
+            .put("redis5single", true)
+            .put("redis5cluster", false)
+            .build();
 
     @ClassRule
-    public static SingleNodeRedisConnector singleJedis = new SingleNodeRedisConnector();
+    public static final DockerComposeRule DOCKER_RULE = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
+            .build();
 
     @Parameterized.Parameter
-    public String parameterName;
+    public String dockerService;
 
-    @Parameterized.Parameter(1)
-    public RedisConnector redisConnector;
-
-    @Parameterized.Parameter(2)
-    public AbstractScript script;
-
+    protected AbstractScript script;
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> scripts() {
-        return Arrays.asList(new Object[][] {
-                {"single", singleJedis, new SingleNodeScript(singleJedis.getJedisPool(), 0)},
-                {"cluster", jedisCluster, new ClusterScript(jedisCluster.getJedisCluster(), 12)}});
+    public static Object[] parameters() {
+        return CONTAINERS.keySet().toArray();
     }
 
     @Before
-    public void setUp() {
-        redisConnector.flush();
+    public void setUp() throws IOException, InterruptedException {
+        DockerPort servicePort = DOCKER_RULE.dockerCompose()
+                .ports(dockerService)
+                .stream()
+                .findFirst()
+                .get();
+
+        if (CONTAINERS.get(dockerService)) {
+            SingleNodeRedisConnector singleNodeRedisConnector =
+                    new SingleNodeRedisConnector(servicePort.getIp(), servicePort.getExternalPort());
+            singleNodeRedisConnector.flush();
+            script = new SingleNodeScript(singleNodeRedisConnector.getJedisPool(), 0);
+        } else {
+            RedisClusterConnector redisClusterConnector =
+                    new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
+            redisClusterConnector.flush();
+            script = new ClusterScript(redisClusterConnector.getJedisCluster(), 12);
+        }
     }
 }

@@ -9,19 +9,16 @@
  ******************************************************************************/
 package com.nosto.redis;
 
-import org.junit.rules.ExternalResource;
-
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.exceptions.JedisDataException;
 
-public class RedisClusterConnector extends ExternalResource implements RedisConnector {
+public class RedisClusterConnector implements RedisConnector {
     private final JedisCluster jedisCluster;
 
-    public RedisClusterConnector() {
-        HostAndPort hostAndPort = new HostAndPort("rediscluster.dev.nos.to", 7100);
-        jedisCluster = new JedisCluster(hostAndPort, 1000);
+    public RedisClusterConnector(String host, int port) {
+        jedisCluster = new JedisCluster(new HostAndPort(host, port));
     }
 
     public JedisCluster getJedisCluster() {
