@@ -1,12 +1,12 @@
-/*******************************************************************************
- * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
- * <p>
- * This software is the confidential and proprietary information of
- * Nosto Solutions Ltd ("Confidential Information"). You shall not
- * disclose such Confidential Information and shall use it only in
- * accordance with the terms of the agreement you entered into with
- * Nosto Solutions Ltd.
- ******************************************************************************/
+/******************************************************************************
+ Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
+ <p>
+ This software is the confidential and proprietary information of
+ Nosto Solutions Ltd ("Confidential Information"). You shall not
+ disclose such Confidential Information and shall use it only in
+ accordance with the terms of the agreement you entered into with
+ Nosto Solutions Ltd.
+ */
 package com.nosto.redis.queue;
 
 import static org.junit.Assert.assertEquals;
@@ -14,7 +14,7 @@ import static org.junit.Assert.assertFalse;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +47,7 @@ public class MultitenantQueueTest extends AbstractScriptTest {
         assertEquals(new TenantStatistics("t1", 0, 1), qStats.get("t1"));
 
         List<TenantMessage> messages = queue.dequeue(Duration.ofSeconds(2), 10);
-        assertEquals(Arrays.asList(
+        assertEquals(Collections.singletonList(
                 new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8))), messages);
 
         qStats = queue.getStatistics()
@@ -68,7 +68,7 @@ public class MultitenantQueueTest extends AbstractScriptTest {
         queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
 
         List<TenantMessage> q1Messages = queue.dequeue(Duration.ofSeconds(2), 10);
-        assertEquals(Arrays.asList(
+        assertEquals(Collections.singletonList(
                 new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8))), q1Messages);
 
         Map<String, TenantStatistics> q1Stats = queue.getStatistics()
@@ -77,13 +77,13 @@ public class MultitenantQueueTest extends AbstractScriptTest {
         assertEquals(new TenantStatistics("t1", 1, 1), q1Stats.get("t1"));
     }
 
+    @SuppressWarnings("Since15")
     @Test
     public void peek() {
         queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
         queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
 
-        assertEquals(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)),
-                queue.peek("t1").get());
+        assertEquals(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), queue.peek("t1").orElseThrow());
         assertFalse(queue.peek("t2").isPresent());
     }
 

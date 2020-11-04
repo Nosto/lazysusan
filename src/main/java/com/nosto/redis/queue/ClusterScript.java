@@ -1,12 +1,12 @@
-/*******************************************************************************
- * Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
- * <p>
- * This software is the confidential and proprietary information of
- * Nosto Solutions Ltd ("Confidential Information"). You shall not
- * disclose such Confidential Information and shall use it only in
- * accordance with the terms of the agreement you entered into with
- * Nosto Solutions Ltd.
- ******************************************************************************/
+/******************************************************************************
+ Copyright (c) 2019 Nosto Solutions Ltd All Rights Reserved.
+ <p>
+ This software is the confidential and proprietary information of
+ Nosto Solutions Ltd ("Confidential Information"). You shall not
+ disclose such Confidential Information and shall use it only in
+ accordance with the terms of the agreement you entered into with
+ Nosto Solutions Ltd.
+ */
 package com.nosto.redis.queue;
 
 import java.time.Duration;
@@ -76,7 +76,7 @@ class ClusterScript extends AbstractScript {
 
     @Override
     Optional<TenantMessage> peek(Instant now, String queue, String tenant) {
-        List<TenantMessage> messages = unpackTenantMessage(IntStream.range(0, numSlots)
+        @SuppressWarnings("unchecked") List<TenantMessage> messages = unpackTenantMessage(IntStream.range(0, numSlots)
                 .map(x -> nextSlot.getAsInt())
                 .mapToObj(ClusterScript::bytes)
                 .flatMap(key ->
