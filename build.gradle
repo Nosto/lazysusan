@@ -1,38 +1,61 @@
-plugins {
-    id 'java'
-    id 'checkstyle'
-    id 'maven-publish'
-    id 'idea'
+import net.ltgt.gradle.errorprone.*
+
+buildscript {
+    buildscript {
+        repositories {
+            google()
+            mavenCentral()
+            gradlePluginPortal()
+            jcenter()
+        }
+        dependencies {
+            classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.8"
+            classpath "net.ltgt.gradle:gradle-nullaway-plugin:0.2"
+            classpath "com.diffplug.spotless:spotless-plugin-gradle:3.23.0"
+            classpath "gradle.plugin.com.github.spotbugs.snom:spotbugs-gradle-plugin:4.0.5"
+            classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.5"
+        }
+    }
 }
+
+apply plugin: 'java'
+apply plugin: 'checkstyle'
+apply plugin: "com.github.spotbugs"
+apply plugin: 'maven-publish'
+apply plugin: 'com.diffplug.gradle.spotless'
+apply plugin: 'net.ltgt.errorprone'
+apply plugin: 'net.ltgt.nullaway'
+apply plugin: "com.dorongold.task-tree"
+apply plugin: "jacoco"
 
 group 'com.nosto'
 version '2.0.0'
 
-checkstyle {
-    ignoreFailures = project.hasProperty("ignoreCheckFailures")
-}
-
-test {
-    ignoreFailures = project.hasProperty("ignoreCheckFailures")
-}
-
 java {
+    withJavadocJar()
+    withSourcesJar()
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-task sourcesJar(type: Jar) {
-    from sourceSets.main.allJava
-    archiveClassifier = 'sources'
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone.nullaway {
+        severity = CheckSeverity.OFF
+    }
 }
 
-task javadocJar(type: Jar) {
-    from javadoc
-    archiveClassifier = 'javadoc'
+
+repositories {
+    google()
+    mavenCentral()
+    jcenter()
+    maven {
+        url 'https://dl.bintray.com/palantir/releases'
+    }
 }
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.mockito', name: 'mockito-core', version: '3.0.0'
     testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
     testCompile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8.2'
@@ -45,29 +68,131 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.9'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+    errorprone group: 'com.uber.nullaway', name: 'nullaway', version: '0.7.9'
+    errorprone group: 'com.google.errorprone', name: 'error_prone_core', version: '2.3.4'
+    spotbugsPlugins group: 'com.h3xstream.findsecbugs', name: 'findsecbugs-plugin', version: '1.10.1'
 }
 
-repositories {
-    mavenCentral()
-    jcenter()
-    maven {
-        url 'https://dl.bintray.com/palantir/releases'
+// Configuration for the nullaway extension. The rest of the parameters must be
+// specified on the java-compile tasks. The only option that be specified here
+// is the name of the root package to be analysed.
+nullaway {
+    annotatedPackages.add("com.nosto")
+}
+
+// Configuration for the Spotbugs plugin. It seems that it isn't possible to define
+// the output report formats here and those seem to be defined on the individual
+// task level.
+// I'm not sure why the tool version is defined here and it isn't managed as a
+// dependency.
+spotbugs {
+    toolVersion = '4.0.2'
+    ignoreFailures = true
+    effort = 'max'
+}
+
+// We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
+spotbugsMain {
+    //noinspection GroovyAssignabilityCheck
+    reports {
+        xml.enabled = true
     }
 }
 
+// We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
+spotbugsTest {
+    reports {
+        xml.enabled = true
+    }
+}
+
+// Configuration for the Checkstyle plugin. It seems that it isn't possible to define
+// the output report formats here and those seem to be defined on the individual
+// task level.
+// I'm not sure why the tool version is defined here and it isn't managed as a
+// dependency.
+checkstyle {
+    toolVersion "7.6.1"
+    config resources.text.fromFile("config/checkstyle/checkstyle.xml")
+}
+
+// We only need the XML report so that the CI tools can parse it. The HTML isn't needed
+// and must be explicitly disabled
+checkstyleMain {
+    reports {
+        xml.enabled = true
+        html.enabled = false
+    }
+}
+
+// We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
+checkstyleTest {
+    reports {
+        xml.enabled = true
+        html.enabled = false
+    }
+}
+
+// Configuration for the Jacoco plugin. It seems that it isn't possible to define
+// the output report formats here and those seem to be defined on the individual
+// task level.
+// I'm not sure why the tool version is defined here and it isn't managed as a
+// dependency.
+jacoco {
+    toolVersion = "0.8.5"
+}
+
+// We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
+jacocoTestReport {
+    reports {
+        csv.enabled = true
+        xml.enabled = false
+        html.enabled = true
+    }
+}
+
+test {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    reports {
+        junitXml.enabled = true
+        html.enabled = true
+    }
+}
+
+javadoc {
+    options.addBooleanOption('html5', true)
+}
+
+sourcesJar {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
+}
+
+javadocJar {
+    archiveClassifier.set('javadoc')
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
 publishing {
-	repositories {
-		maven {
-			name = "GitHubPackages"
-			url = uri("https://maven.pkg.github.com/nosto/lazysusan")
-			credentials {
-				username = "mridang"
-				password = "*******"
-			}
-		}
-	}
-	publications {
-		maven(MavenPublication) {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/nosto/lazysusan")
+            credentials {
+                username = "mridang"
+                password = "*******"
+            }
+        }
+    }
+    publications {
+        maven(MavenPublication) {
             from components.java
 
             artifact sourcesJar
@@ -81,7 +206,7 @@ publishing {
 }
 
 javadoc {
-    if(JavaVersion.current().isJava9Compatible()) {
+    if (JavaVersion.current().isJava9Compatible()) {
         options.addBooleanOption('html5', true)
     }
 }
