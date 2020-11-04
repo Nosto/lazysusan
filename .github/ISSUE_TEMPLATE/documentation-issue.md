@@ -9,4 +9,4 @@ assignees: ''
 
 **Documentation issue**
 <!-- Before opening a new issue, please make sure you already checked -->
-<!-- our exhaustive wiki documentation at https://github.com/nosto/nosto-magento2-cmp/wiki -->
+<!-- our documentation. -->
