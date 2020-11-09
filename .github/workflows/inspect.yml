@@ -13,7 +13,7 @@ jobs:
         with:
           target: /github/workspace
           profile: /github/workspace/.idea/inspectionProfiles/CI.xml
-          output: /output
+          output: output
           verbosity: v2
           scope: Inspection
 
@@ -21,4 +21,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: inspection-results
-          path: /output
+          path: output
