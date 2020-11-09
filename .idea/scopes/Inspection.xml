@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Inspection" pattern="file[lazysusan.test]:*/||file[lazysusan.main]:*/" />
+</component>

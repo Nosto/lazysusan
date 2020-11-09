@@ -9,7 +9,6 @@
  */
 package com.nosto.redis.queue;
 
-import java.io.IOException;
 import java.util.Map;
 
 import org.junit.Before;
@@ -53,14 +52,13 @@ public abstract class AbstractScriptTest {
         return CONTAINERS.keySet().toArray();
     }
 
-    @SuppressWarnings("Since15")
     @Before
-    public void setUp() throws IOException, InterruptedException {
+    public void setUp() throws Throwable {
         DockerPort servicePort = DOCKER_RULE.dockerCompose()
                 .ports(dockerService)
                 .stream()
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("No port defined"));
 
         if (CONTAINERS.get(dockerService)) {
             SingleNodeRedisConnector singleNodeRedisConnector =

@@ -31,6 +31,7 @@ buildscript {
 apply plugin: 'java'
 apply plugin: 'checkstyle'
 apply plugin: "com.github.spotbugs"
+apply plugin: 'maven'
 apply plugin: 'maven-publish'
 apply plugin: 'com.diffplug.gradle.spotless'
 apply plugin: 'net.ltgt.errorprone'
@@ -50,6 +51,7 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.errorprone.nullaway {
+        //noinspection GrUnresolvedAccess
         severity = CheckSeverity.OFF
     }
 }
@@ -87,6 +89,7 @@ dependencies {
 // specified on the java-compile tasks. The only option that be specified here
 // is the name of the root package to be analysed.
 nullaway {
+    //noinspection GrUnresolvedAccess
     annotatedPackages.add("com.nosto")
 }
 
@@ -96,7 +99,9 @@ nullaway {
 // I'm not sure why the tool version is defined here and it isn't managed as a
 // dependency.
 spotbugs {
+    //noinspection GroovyAccessibility,GrFinalVariableAccess,GroovyAssignabilityCheck
     toolVersion = '4.0.2'
+    //noinspection GroovyAccessibility,GrFinalVariableAccess,GroovyAssignabilityCheck
     ignoreFailures = true
     effort = 'max'
 }
@@ -111,6 +116,7 @@ spotbugsMain {
 
 // We only need the XML report so that the CI tools can parse it. The HTML isn't needed.
 spotbugsTest {
+    //noinspection GroovyAssignabilityCheck
     reports {
         xml.enabled = true
     }
@@ -163,6 +169,7 @@ jacocoTestReport {
 
 test {
     testLogging {
+        //noinspection GrUnresolvedAccess
         events "passed", "skipped", "failed"
     }
     reports {
@@ -202,13 +209,18 @@ publishing {
         }
     }
     publications {
+        //noinspection GroovyAssignabilityCheck
         maven(MavenPublication) {
+            //noinspection GroovyAssignabilityCheck
             from components.java
 
+            //noinspection GroovyAssignabilityCheck
             artifact sourcesJar
+            //noinspection GroovyAssignabilityCheck
             artifact javadocJar
 
             pom {
+                //noinspection GroovyAssignabilityCheck
                 url = 'https://github.com/nosto/lazysusan'
             }
         }

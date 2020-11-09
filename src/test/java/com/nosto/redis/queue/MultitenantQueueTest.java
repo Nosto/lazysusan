@@ -77,13 +77,12 @@ public class MultitenantQueueTest extends AbstractScriptTest {
         assertEquals(new TenantStatistics("t1", 1, 1), q1Stats.get("t1"));
     }
 
-    @SuppressWarnings("Since15")
     @Test
     public void peek() {
         queue.enqueue(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
         queue.enqueue(new TenantMessage("t1", "k2", "payload2".getBytes(StandardCharsets.UTF_8)), Duration.ZERO);
 
-        assertEquals(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), queue.peek("t1").orElseThrow());
+        assertEquals(new TenantMessage("t1", "k1", "payload1".getBytes(StandardCharsets.UTF_8)), queue.peek("t1").orElse(null));
         assertFalse(queue.peek("t2").isPresent());
     }
 
