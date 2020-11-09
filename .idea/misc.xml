@@ -11,8 +11,8 @@
     <file type="web" url="file://$PROJECT_DIR$" />
   </component>
   <component name="ProjectResources">
-    <resource url="https://checkstyle.org/dtds/configuration_1_3.dtd" location="$USER_HOME$/Library/Caches/JetBrains/IntelliJIdea2020.1/extResources/385f0dd3_configuration_1_3.dtd" />
-    <resource url="https://checkstyle.org/dtds/suppressions_1_2.dtd" location="$USER_HOME$/Library/Caches/JetBrains/IntelliJIdea2020.1/extResources/c4ff3eba_suppressions_1_2.dtd" />
+    <resource url="https://checkstyle.org/dtds/configuration_1_3.dtd" location="$PROJECT_DIR$/.idea/dtds/configuration_1_3.dtd" />
+    <resource url="https://checkstyle.org/dtds/suppressions_1_2.dtd" location="$PROJECT_DIR$/.idea/dtds/suppressions_1_2.dtd" />
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="false" project-jdk-name="11" project-jdk-type="JavaSDK" />
 </project>
