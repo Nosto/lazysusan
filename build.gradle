@@ -88,6 +88,7 @@ dependencies {
 // specified on the java-compile tasks. The only option that be specified here
 // is the name of the root package to be analysed.
 nullaway {
+    //noinspection GrUnresolvedAccess
     annotatedPackages.add("com.nosto")
 }
 
@@ -167,6 +168,7 @@ jacocoTestReport {
 
 test {
     testLogging {
+        //noinspection GrUnresolvedAccess
         events "passed", "skipped", "failed"
     }
     reports {
@@ -208,6 +210,7 @@ publishing {
     publications {
         //noinspection GroovyAssignabilityCheck
         maven(MavenPublication) {
+            //noinspection GroovyAssignabilityCheck
             from components.java
 
             //noinspection GroovyAssignabilityCheck
