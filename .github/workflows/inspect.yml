@@ -11,9 +11,9 @@ jobs:
       - name: Run Intellij
         uses: mridang/action-idea@master
         with:
-          target: .
-          profile: ./.idea/inspectionProfiles/CI.xml
-          output: ./output
+          target: /github/workspace
+          profile: /github/workspace/.idea/inspectionProfiles/CI.xml
+          output: /output
           verbosity: v2
           scope: Inspection
 
