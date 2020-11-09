@@ -51,6 +51,7 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
     options.errorprone.nullaway {
+        //noinspection GrUnresolvedAccess
         severity = CheckSeverity.OFF
     }
 }
