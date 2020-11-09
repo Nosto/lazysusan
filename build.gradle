@@ -176,6 +176,11 @@ test {
         junitXml.enabled = true
         html.enabled = true
     }
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
 }
 
 javadoc {
@@ -200,12 +205,9 @@ artifacts {
 publishing {
     repositories {
         maven {
-            name = "GitHubPackages"
+            name = "github"
             url = uri("https://maven.pkg.github.com/nosto/lazysusan")
-            credentials {
-                username = "mridang"
-                password = "*******"
-            }
+            credentials(PasswordCredentials)
         }
     }
     publications {
