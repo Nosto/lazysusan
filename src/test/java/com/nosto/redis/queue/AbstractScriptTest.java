@@ -35,6 +35,8 @@ public abstract class AbstractScriptTest {
             .put("redis4cluster", false)
             .put("redis5single", true)
             .put("redis5cluster", false)
+            .put("redis6single", true)
+            .put("redis6cluster", false)
             .build();
 
     @ClassRule

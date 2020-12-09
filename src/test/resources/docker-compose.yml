@@ -15,6 +15,11 @@ services:
     command: redis-server --port 7002
     ports:
       - "7002"
+  redis6single:
+    image: redis:6.0
+    command: redis-server --port 7003
+    ports:
+      - "7003"
   redis3cluster:
     build:
       context: redis-ruby
@@ -61,5 +66,17 @@ services:
       - "7033:7033"
       - "7034:7034"
       - "7035:7035"
+    volumes:
+      - ./create-cluster.sh:/usr/local/bin/create-cluster.sh
+  redis6cluster:
+    image: redis:6.0
+    command: create-cluster.sh 7040 7045
+    ports:
+      - "7040:7040"
+      - "7041:7041"
+      - "7042:7042"
+      - "7043:7043"
+      - "7044:7044"
+      - "7045:7045"
     volumes:
       - ./create-cluster.sh:/usr/local/bin/create-cluster.sh
