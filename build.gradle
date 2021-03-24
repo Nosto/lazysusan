@@ -40,7 +40,7 @@ apply plugin: "com.dorongold.task-tree"
 apply plugin: "jacoco"
 
 group 'com.nosto'
-version '2.0.0'
+version '2.0.1'
 
 java {
     withJavadocJar()
@@ -183,25 +183,9 @@ jacocoTestReport {
     dependsOn test // tests are required to run before generating the report
 }
 
-javadoc {
-    options.addBooleanOption('html5', true)
-}
-
-sourcesJar {
-    archiveClassifier.set('sources')
-    from sourceSets.main.allSource
-}
-
-javadocJar {
-    archiveClassifier.set('javadoc')
-    from javadoc.destinationDir
-}
-
-artifacts {
-    archives javadocJar
-    archives sourcesJar
-}
-
+// For a complete explanation of how this publishing is configured, please
+// refer to the Gradle Docs at:
+// https://docs.gradle.org/current/userguide/publishing_maven.html#publishing_maven:complete_example
 publishing {
     repositories {
         maven {
@@ -212,18 +196,50 @@ publishing {
     }
     publications {
         //noinspection GroovyAssignabilityCheck
-        maven(MavenPublication) {
+        mavenJava(MavenPublication) {
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
             //noinspection GroovyAssignabilityCheck
             from components.java
 
-            //noinspection GroovyAssignabilityCheck
-            artifact sourcesJar
-            //noinspection GroovyAssignabilityCheck
-            artifact javadocJar
-
             pom {
-                //noinspection GroovyAssignabilityCheck
+                name = 'Beanie'
+                description = 'A simple Redis-backed multi-tenant message queue'
                 url = 'https://github.com/nosto/lazysusan'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'gary-madden'
+                        name = 'Gary Madden'
+                        email = 'gary@nosto.com'
+                    }
+                    developer {
+                        id = 'ollik1'
+                        name = 'Olli Kuonanoja'
+                        email = 'olli@nosto.com'
+                    }
+                    developer {
+                        id = 'mridsng'
+                        name = 'Mridang Agarwalla'
+                        email = 'mridang@nosto.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/nosto/lazysusan.git'
+                    developerConnection = 'scm:git:ssh://github.com/nosto/lazysusan.git'
+                    url = 'https://github.com/nosto/lazysusan'
+                }
             }
         }
     }
@@ -234,25 +250,3 @@ javadoc {
         options.addBooleanOption('html5', true)
     }
 }
-
-task createPom  {
-    pom {
-        project {
-            groupId 'com.nosto'
-            artifactId 'imagevector'
-            version '1.0.0-SNAPSHOT'
-
-            inceptionYear '2020'
-            licenses {
-                license {
-                    //noinspection GroovyAssignabilityCheck
-                    name 'The Apache Software License, Version 2.0'
-                    url 'https://www.apache.org/licenses/LICENSE-2.0.txt'
-                    distribution 'repo'
-                }
-            }
-        }
-    }.writeTo("${mavenPomDir}/pom.xml")
-}
-
-build.dependsOn createPom

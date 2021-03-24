@@ -114,6 +114,7 @@ class ClusterScript extends AbstractScript {
         }
     }
 
+    @Override
     byte[] slot(String tenant) {
         return bytes(Math.floorMod(tenant.hashCode(), numSlots));
     }
