@@ -148,7 +148,7 @@ abstract class AbstractScript {
         ArrayList<TenantMessage> result = new ArrayList<>(response.size() >> 1);
         Iterator<byte[]> it = response.iterator();
         while (it.hasNext()) {
-            result.add(new TenantMessage(new String(it.next()), new String(it.next()), it.next()));
+            result.add(new TenantMessage(new String(it.next(), StandardCharsets.UTF_8), new String(it.next(), StandardCharsets.UTF_8), it.next()));
         }
         return result;
     }
@@ -158,7 +158,7 @@ abstract class AbstractScript {
         Iterator<Object> it = response.iterator();
         while (it.hasNext()) {
             TenantStatistics tenantStatistics = new TenantStatistics(
-                    new String((byte[]) it.next()),
+                    new String((byte[]) it.next(), StandardCharsets.UTF_8),
                     (Long) it.next(),
                     (Long) it.next());
             tenantStatisticsMap.put(tenantStatistics.getTenant(), tenantStatistics);
@@ -174,6 +174,7 @@ abstract class AbstractScript {
         PEEK("peek"),
         PURGE("purge");
 
+        @SuppressWarnings("ImmutableEnumChecker")
         private final byte[] name;
 
         Function(String name) {
