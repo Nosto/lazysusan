@@ -175,15 +175,14 @@ abstract class AbstractScript {
         PEEK("peek"),
         PURGE("purge");
 
-        private final byte[] name;
+        private final String name;
 
         Function(String name) {
-            this.name = bytes(name);
+            this.name = name;
         }
 
         public byte[] getName() {
-            return name;
+            return bytes(name);
         }
     }
-
 }
