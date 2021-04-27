@@ -9,8 +9,6 @@
  */
 package com.nosto.redis.queue;
 
-import java.util.Map;
-
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
