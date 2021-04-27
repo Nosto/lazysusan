@@ -51,7 +51,7 @@ abstract class AbstractScript {
             case 0:
                 return EnqueueResult.DUPLICATE_INVISIBLE;
             case 1:
-            return EnqueueResult.SUCCESS;
+                return EnqueueResult.SUCCESS;
             case 2:
                 return EnqueueResult.DUPLICATE_OVERWRITTEN;
             default:
