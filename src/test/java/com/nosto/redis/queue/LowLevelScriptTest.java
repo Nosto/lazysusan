@@ -259,7 +259,7 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         assertTrue(message.isPresent());
         assertEquals("t1", message.get().getTenant());
         assertEquals("foo1", message.get().getKey());
-        assertEquals("bar1", new String(message.get().getPayload()));
+        assertEquals("bar1", new String(message.get().getPayload(), StandardCharsets.UTF_8));
 
         message = script.peek(Instant.EPOCH, "q1", "t2");
         assertFalse(message.isPresent());

@@ -28,7 +28,7 @@ import com.palantir.docker.compose.connection.DockerPort;
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
     // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
-    private static final Map<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
+    private static final ImmutableMap<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
             .put("redis3single", true)
             .put("redis3cluster", false)
             .put("redis4single", true)
