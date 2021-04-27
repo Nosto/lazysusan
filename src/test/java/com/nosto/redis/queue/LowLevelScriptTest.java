@@ -173,9 +173,9 @@ public class LowLevelScriptTest extends AbstractScriptTest {
 
         dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(2), "bar1");
 
-        assertEquals(EnqueueResult.DUPLICATE_INVISIBLE, script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
+        assertEquals(EnqueueResult.DUPLICATE_INVISIBLE, script.enqueue(Instant.EPOCH, Duration.ofSeconds(1), "q1", msg2));
 
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ZERO, "bar1");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(10), "q1", Duration.ZERO, "bar1");
     }
 
     @Test
