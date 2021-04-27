@@ -159,6 +159,25 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ZERO, "bar2");
     }
 
+    /**
+     * An enqueued message should be deduplicated if an invisible message has the same key.
+     */
+    @Test
+    public void deduplicateWithInvisibleMessage() {
+        TenantMessage msg1 =
+                new TenantMessage("t1", "foo", "bar1".getBytes(StandardCharsets.UTF_8));
+        TenantMessage msg2 =
+                new TenantMessage("t1", "foo", "bar2".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(EnqueueResult.SUCCESS, script.enqueue(Instant.EPOCH, Duration.ofSeconds(1), "q1", msg1));
+
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(2), "bar1");
+
+        assertEquals(EnqueueResult.DUPLICATE_INVISIBLE, script.enqueue(Instant.EPOCH, Duration.ofSeconds(5), "q1", msg2));
+
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ZERO, "bar1");
+    }
+
     @Test
     public void enqueueJson() {
         String payload = "{\"key\":\"bar\"}";

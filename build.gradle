@@ -8,8 +8,6 @@
  *  Nosto Solutions Ltd.
  */
 
-import net.ltgt.gradle.errorprone.*
-
 buildscript {
     buildscript {
         repositories {
@@ -19,8 +17,6 @@ buildscript {
             jcenter()
         }
         dependencies {
-            classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.8"
-            classpath "net.ltgt.gradle:gradle-nullaway-plugin:0.2"
             classpath "com.diffplug.spotless:spotless-plugin-gradle:3.23.0"
             classpath "gradle.plugin.com.github.spotbugs.snom:spotbugs-gradle-plugin:4.0.5"
             classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.5"
@@ -34,13 +30,11 @@ apply plugin: "com.github.spotbugs"
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
 apply plugin: 'com.diffplug.gradle.spotless'
-apply plugin: 'net.ltgt.errorprone'
-apply plugin: 'net.ltgt.nullaway'
 apply plugin: "com.dorongold.task-tree"
 apply plugin: "jacoco"
 
 group 'com.nosto'
-version '2.0.0'
+version '2.1.0'
 
 java {
     withJavadocJar()
@@ -48,14 +42,6 @@ java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
-
-tasks.withType(JavaCompile).configureEach {
-    options.errorprone.nullaway {
-        //noinspection GrUnresolvedAccess
-        severity = CheckSeverity.OFF
-    }
-}
-
 
 repositories {
     google()
@@ -80,17 +66,7 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.9'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.9.9'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
-    errorprone group: 'com.uber.nullaway', name: 'nullaway', version: '0.7.9'
-    errorprone group: 'com.google.errorprone', name: 'error_prone_core', version: '2.3.4'
     spotbugsPlugins group: 'com.h3xstream.findsecbugs', name: 'findsecbugs-plugin', version: '1.10.1'
-}
-
-// Configuration for the nullaway extension. The rest of the parameters must be
-// specified on the java-compile tasks. The only option that be specified here
-// is the name of the root package to be analysed.
-nullaway {
-    //noinspection GrUnresolvedAccess
-    annotatedPackages.add("com.nosto")
 }
 
 // Configuration for the Spotbugs plugin. It seems that it isn't possible to define

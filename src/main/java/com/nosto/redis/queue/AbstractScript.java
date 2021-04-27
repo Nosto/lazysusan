@@ -43,20 +43,25 @@ abstract class AbstractScript {
      * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
     EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
-        boolean result = TRUE_RESPONSE.equals(call(Function.ENQUEUE,
+        Long result = (Long) call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
                 bytes(now.toEpochMilli()),
                 bytes(now.plus(invisiblePeriod).toEpochMilli()),
                 bytes(tenantMessage.getTenant()),
                 bytes(tenantMessage.getKey()),
-                tenantMessage.getPayload()));
+                tenantMessage.getPayload());
 
-        if (result) {
+        switch (result.intValue()) {
+            case 0:
+                return EnqueueResult.DUPLICATE_INVISIBLE;
+            case 1:
             return EnqueueResult.SUCCESS;
+            case 2:
+                return EnqueueResult.DUPLICATE_OVERWRITTEN;
+            default:
+                throw new IllegalStateException("Unrecognized result: " + result);
         }
-
-        return EnqueueResult.DUPLICATE_OVERWRITTEN;
     }
 
     /**
