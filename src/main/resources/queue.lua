@@ -2,6 +2,11 @@ local public = {}
 local private = {}
 
 function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
+    local invisible_key = private.invisible_key(slot, queue, tenant)
+    if redis.call("zrank", invisible_key, key) then
+        return 0
+    end
+
     local visible_key = private.visible_key(slot, queue, tenant)
     redis.call("hset", private.period(slot, queue), tenant, nexttime - time)
     redis.call("hset", private.payload_key(slot, queue, tenant), key, payload)
@@ -13,9 +18,9 @@ function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
             redis.call("zadd", schedule_key, nexttime, tenant)
         end
         redis.call("zadd", visible_key, time, key)
-        return true
+        return 1
     else
-        return false
+        return 2
     end
 end
 

@@ -21,5 +21,10 @@ public enum EnqueueResult {
      * The message was successfully enqueued.
      * A previously enqueued message with the same deduplication key was replaced with the newly enqueued message.
      */
-    DUPLICATE_OVERWRITTEN
+    DUPLICATE_OVERWRITTEN,
+    /**
+     * The message was not enqueued.
+     * A previously enqueued message with the same deduplication key is currently invisible and cannot be overwritten.
+     */
+    DUPLICATE_INVISIBLE
 }

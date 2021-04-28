@@ -29,11 +29,6 @@ import org.apache.commons.io.IOUtils;
  */
 abstract class AbstractScript {
     /**
-     * Lua return true gets mapped to 1L.
-     */
-    private static final Long TRUE_RESPONSE = 1L;
-
-    /**
      * Adds a message to a queue.
      *
      * @param now Time now
@@ -43,20 +38,25 @@ abstract class AbstractScript {
      * @return The {@link EnqueueResult} which describes how the message was enqueued.
      */
     EnqueueResult enqueue(Instant now, Duration invisiblePeriod, String queue, TenantMessage tenantMessage) {
-        boolean result = TRUE_RESPONSE.equals(call(Function.ENQUEUE,
+        Long result = (Long) call(Function.ENQUEUE,
                 slot(tenantMessage.getTenant()),
                 bytes(queue),
                 bytes(now.toEpochMilli()),
                 bytes(now.plus(invisiblePeriod).toEpochMilli()),
                 bytes(tenantMessage.getTenant()),
                 bytes(tenantMessage.getKey()),
-                tenantMessage.getPayload()));
+                tenantMessage.getPayload());
 
-        if (result) {
-            return EnqueueResult.SUCCESS;
+        switch (result.intValue()) {
+            case 0:
+                return EnqueueResult.DUPLICATE_INVISIBLE;
+            case 1:
+                return EnqueueResult.SUCCESS;
+            case 2:
+                return EnqueueResult.DUPLICATE_OVERWRITTEN;
+            default:
+                throw new IllegalStateException("Unrecognized result: " + result);
         }
-
-        return EnqueueResult.DUPLICATE_OVERWRITTEN;
     }
 
     /**
@@ -148,7 +148,8 @@ abstract class AbstractScript {
         ArrayList<TenantMessage> result = new ArrayList<>(response.size() >> 1);
         Iterator<byte[]> it = response.iterator();
         while (it.hasNext()) {
-            result.add(new TenantMessage(new String(it.next()), new String(it.next()), it.next()));
+            result.add(new TenantMessage(new String(it.next(), StandardCharsets.UTF_8),
+                    new String(it.next(), StandardCharsets.UTF_8), it.next()));
         }
         return result;
     }
@@ -158,7 +159,7 @@ abstract class AbstractScript {
         Iterator<Object> it = response.iterator();
         while (it.hasNext()) {
             TenantStatistics tenantStatistics = new TenantStatistics(
-                    new String((byte[]) it.next()),
+                    new String((byte[]) it.next(), StandardCharsets.UTF_8),
                     (Long) it.next(),
                     (Long) it.next());
             tenantStatisticsMap.put(tenantStatistics.getTenant(), tenantStatistics);
@@ -174,15 +175,14 @@ abstract class AbstractScript {
         PEEK("peek"),
         PURGE("purge");
 
-        private final byte[] name;
+        private final String name;
 
         Function(String name) {
-            this.name = bytes(name);
+            this.name = name;
         }
 
         public byte[] getName() {
-            return name;
+            return bytes(name);
         }
     }
-
 }
