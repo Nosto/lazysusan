@@ -51,9 +51,27 @@ public class LowLevelScriptTest extends AbstractScriptTest {
         script.enqueue(Instant.EPOCH, Duration.ofSeconds(1),
                 "q1",
                 new TenantMessage("t1", "foo", "bar".getBytes(StandardCharsets.UTF_8)));
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ofSeconds(2), "bar");
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(2));
-        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(2), "bar");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ofSeconds(5), "bar");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(3), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(4), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(5), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(6), "q1", Duration.ofSeconds(10), "bar");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(7), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(8), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(9), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(10), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(11), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(12), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(13), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(14), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(15), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(16), "q1", Duration.ofSeconds(5), "bar");
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(17), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(18), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(19), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(20), "q1", Duration.ofSeconds(5));
+        dequeueAndAssert(Instant.EPOCH.plusSeconds(21), "q1", Duration.ofSeconds(5), "bar");
     }
 
     @Test
