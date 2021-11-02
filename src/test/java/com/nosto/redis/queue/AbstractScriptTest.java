@@ -50,6 +50,7 @@ public abstract class AbstractScriptTest {
         return CONTAINERS.keySet().toArray();
     }
 
+    @SuppressWarnings("NullAway")
     @Before
     public void setUp() throws Throwable {
         DockerPort servicePort = DOCKER_RULE.dockerCompose()
