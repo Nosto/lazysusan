@@ -9,11 +9,13 @@
  */
 package com.nosto.redis;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.exceptions.JedisDataException;
 
+@SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
 public class RedisClusterConnector implements RedisConnector {
     private final JedisCluster jedisCluster;
 

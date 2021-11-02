@@ -9,9 +9,11 @@
  */
 package com.nosto.redis;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+@SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
 public class SingleNodeRedisConnector implements RedisConnector {
     private final JedisPool jedisPool;
 

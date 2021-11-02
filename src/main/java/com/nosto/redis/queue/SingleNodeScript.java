@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -70,6 +71,7 @@ class SingleNodeScript extends AbstractScript {
         return SLOT;
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private <R> R executeJedis(java.util.function.Function<Jedis, R> jedisFunction) {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.select(dbIndex);

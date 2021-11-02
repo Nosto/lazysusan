@@ -13,9 +13,12 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A representation of a tenant's message that can be enqueued.
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public final class TenantMessage {
     private final String tenant;
     private final String key;
@@ -51,6 +54,7 @@ public final class TenantMessage {
     /**
      * @return The message payload.
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public byte[] getPayload() {
         return payload;
     }
