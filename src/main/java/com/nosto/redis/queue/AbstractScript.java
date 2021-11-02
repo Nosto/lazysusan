@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
@@ -149,7 +150,7 @@ abstract class AbstractScript {
 
     protected byte[] loadScript() {
         try {
-            return IOUtils.toString(getClass().getResourceAsStream("/queue.lua"), StandardCharsets.UTF_8)
+            return IOUtils.toString(Objects.requireNonNull(getClass().getResourceAsStream("/queue.lua")), StandardCharsets.UTF_8)
                     .getBytes(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new IllegalStateException("Cannot load script.", e);
