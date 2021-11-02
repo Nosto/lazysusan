@@ -19,7 +19,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 class SingleNodeScript extends AbstractScript {
-    private static final byte[] SLOT = new byte[] {};
+    private static final byte[] SLOT = new byte[]{};
 
     private final JedisPool jedisPool;
     private final int dbIndex;

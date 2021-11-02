@@ -23,8 +23,9 @@ public final class TenantMessage {
 
     /**
      * Create a new {@link TenantMessage}.
-     * @param tenant The tenant associated with the message.
-     * @param key A key that identifies the message. Messages with the same key are treated as duplicates.
+     *
+     * @param tenant  The tenant associated with the message.
+     * @param key     A key that identifies the message. Messages with the same key are treated as duplicates.
      * @param payload The message payload.
      */
     public TenantMessage(String tenant, String key, byte[] payload) {

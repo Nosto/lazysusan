@@ -22,9 +22,9 @@ public final class TenantStatistics {
     private final long visibleMessageCount;
 
     /**
-     * @param tenant The tenant.
+     * @param tenant                The tenant.
      * @param invisibleMessageCount Total number of invisible messages for the tenant.
-     * @param visibleMessageCount Total number of visible messages for the tenant.
+     * @param visibleMessageCount   Total number of visible messages for the tenant.
      */
     public TenantStatistics(String tenant, long invisibleMessageCount, long visibleMessageCount) {
         this.tenant = tenant;

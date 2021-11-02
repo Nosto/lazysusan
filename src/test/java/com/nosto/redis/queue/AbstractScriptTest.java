@@ -25,6 +25,10 @@ import com.palantir.docker.compose.connection.DockerPort;
  */
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
+    @ClassRule
+    public static final DockerComposeRule DOCKER_RULE = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
+            .build();
     // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
     private static final ImmutableMap<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
             .put("redis3single", true)
@@ -36,12 +40,6 @@ public abstract class AbstractScriptTest {
             .put("redis6single", true)
             .put("redis6cluster", false)
             .build();
-
-    @ClassRule
-    public static final DockerComposeRule DOCKER_RULE = DockerComposeRule.builder()
-            .file("src/test/resources/docker-compose.yml")
-            .build();
-
     @Parameterized.Parameter
     public String dockerService;
 

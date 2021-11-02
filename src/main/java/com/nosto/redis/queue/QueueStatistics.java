@@ -20,6 +20,7 @@ public final class QueueStatistics {
 
     /**
      * Queue statistics.
+     *
      * @param tenantStatistics Statistics per tenant.
      */
     public QueueStatistics(Map<String, TenantStatistics> tenantStatistics) {

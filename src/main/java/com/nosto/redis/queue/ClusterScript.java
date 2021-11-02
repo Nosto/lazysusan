@@ -64,12 +64,12 @@ class ClusterScript extends AbstractScript {
                 .map(x -> nextSlot.getAsInt())
                 .mapToObj(ClusterScript::bytes)
                 .flatMap(key ->
-                    ((List<byte[]>) call(Function.DEQUEUE,
-                            key,
-                            bytes(queue),
-                            bytes(now.toEpochMilli()),
-                            bytes(now.plus(invisiblePeriod).toEpochMilli()),
-                            bytes(maxKeys))).stream())
+                        ((List<byte[]>) call(Function.DEQUEUE,
+                                key,
+                                bytes(queue),
+                                bytes(now.toEpochMilli()),
+                                bytes(now.plus(invisiblePeriod).toEpochMilli()),
+                                bytes(maxKeys))).stream())
                 .collect(Collectors.toList()));
 
     }
@@ -93,9 +93,9 @@ class ClusterScript extends AbstractScript {
     @SuppressWarnings("unchecked")
     QueueStatistics getQueueStatistics(String queue) {
         return unpackQueueStatistics(IntStream.range(0, numSlots)
-                    .map(x -> nextSlot.getAsInt())
-                    .mapToObj(ClusterScript::bytes)
-                    .flatMap(key ->
+                .map(x -> nextSlot.getAsInt())
+                .mapToObj(ClusterScript::bytes)
+                .flatMap(key ->
                         ((List<byte[]>) call(Function.GET_QUEUE_STATS, key, bytes(queue))).stream())
                 .collect(Collectors.toList()));
     }

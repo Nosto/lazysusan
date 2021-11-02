@@ -27,9 +27,10 @@ public class MultitenantQueue {
 
     /**
      * Connect the multi-tenant queue to a single Redis node.
+     *
      * @param queueName The name of the queue.
      * @param jedisPool The Redis node to connect to.
-     * @param dbIndex The index of the DB to use.
+     * @param dbIndex   The index of the DB to use.
      */
     public MultitenantQueue(String queueName,
                             JedisPool jedisPool,
@@ -39,9 +40,10 @@ public class MultitenantQueue {
 
     /**
      * Connect the multi-tenant queue to a Redis cluster.
-     * @param queueName The name of the queue.
+     *
+     * @param queueName    The name of the queue.
      * @param jedisCluster The Redis cluster to connect to.
-     * @param shards The number of shards used for balancing the data across the cluster.
+     * @param shards       The number of shards used for balancing the data across the cluster.
      */
     public MultitenantQueue(String queueName,
                             JedisCluster jedisCluster,
@@ -56,10 +58,11 @@ public class MultitenantQueue {
 
     /**
      * Enqueue a message for a tenant.
-     * @param tenantMessage The message to be enqueued.
+     *
+     * @param tenantMessage   The message to be enqueued.
      * @param dequeueInterval The interval at which the tenant's messages can be de-queued. If the value is
-     *                       10 milliseconds, a tenant's message can be de-queued once every 10 milliseconds.
-     *                       This value overwrites the value used to enqueue previous messages for the same tenant.
+     *                        10 milliseconds, a tenant's message can be de-queued once every 10 milliseconds.
+     *                        This value overwrites the value used to enqueue previous messages for the same tenant.
      * @return How the message was enqueued.
      */
     @SuppressWarnings("UnusedReturnValue")
@@ -69,11 +72,12 @@ public class MultitenantQueue {
 
     /**
      * De-queue messages.
+     *
      * @param messageInvisibilityPeriod The amount of time before a message can be de-queued again. To avoid the message
-     *        being processed more than once, it should be deleted before {@code messageInvisibilityPeriod}
-     *        has elapsed by calling {@link #delete(String, String)}.
-     * @param maximumMessages The maximum number of messages to de-queue. When connecting to a Redis cluster,
-     *        this number is multiplied by the number of shards because each shard is de-queued.
+     *                                  being processed more than once, it should be deleted before {@code messageInvisibilityPeriod}
+     *                                  has elapsed by calling {@link #delete(String, String)}.
+     * @param maximumMessages           The maximum number of messages to de-queue. When connecting to a Redis cluster,
+     *                                  this number is multiplied by the number of shards because each shard is de-queued.
      * @return De-queued messages.
      */
     public List<TenantMessage> dequeue(Duration messageInvisibilityPeriod, int maximumMessages) {
@@ -82,7 +86,8 @@ public class MultitenantQueue {
 
     /**
      * Delete a message from the queue.
-     * @param tenant The tenant associated with the message.
+     *
+     * @param tenant     The tenant associated with the message.
      * @param messageKey The key that identifies the message.
      */
     public void delete(String tenant, String messageKey) {
@@ -91,6 +96,7 @@ public class MultitenantQueue {
 
     /**
      * Fetch a message from the queue. Unlike {@link #dequeue(Duration, int)}, the message does not become invisible.
+     *
      * @param tenant The tenant associated with the message.
      * @return A message at the top of the queue, if one exists for the given tenant.
      */
@@ -107,6 +113,7 @@ public class MultitenantQueue {
 
     /**
      * Purges all of the tenant's messages.
+     *
      * @param tenant The tenant for whom messages will be purged.
      * @return The total number of messages purged.
      */
