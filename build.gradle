@@ -8,7 +8,7 @@
  *  Nosto Solutions Ltd.
  */
 
-import net.ltgt.gradle.errorprone.*
+import net.ltgt.gradle.errorprone.CheckSeverity
 
 buildscript {
     buildscript {
@@ -71,7 +71,7 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core', version: '3.0.0'
     testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
     testCompile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8.2'
-    testCompile group: 'com.palantir.docker.compose', name:'docker-compose-rule-junit4', version:'1.4.2'
+    testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: '1.4.2'
     compileOnly group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
     compileOnly group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.8.2'
     compile group: 'redis.clients', name: 'jedis', version: '2.9.0'
