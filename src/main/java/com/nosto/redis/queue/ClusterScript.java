@@ -33,10 +33,12 @@ class ClusterScript extends AbstractScript {
      */
     private final IntSupplier nextSlot;
     private final int numSlots;
+    private final DequeueStrategy dequeueStrategy;
 
-    ClusterScript(BinaryJedisCluster jedis, int numSlots) {
+    ClusterScript(BinaryJedisCluster jedis, int numSlots, DequeueStrategy dequeueStrategy) {
         this.jedis = jedis;
         this.numSlots = numSlots;
+        this.dequeueStrategy = dequeueStrategy;
 
         source = loadScript();
         sha = jedis.scriptLoad(source, new byte[]{0}); // load it on a random host
@@ -69,7 +71,8 @@ class ClusterScript extends AbstractScript {
                                 bytes(queue),
                                 bytes(now.toEpochMilli()),
                                 bytes(now.plus(invisiblePeriod).toEpochMilli()),
-                                bytes(maxKeys))).stream())
+                                bytes(maxKeys),
+                                bytes(dequeueStrategy == DequeueStrategy.MULTIPLE_PER_TENANT))).stream())
                 .collect(Collectors.toList()));
 
     }

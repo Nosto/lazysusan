@@ -9,6 +9,7 @@
  */
 package com.nosto.redis.queue;
 
+import com.palantir.docker.compose.connection.Container;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
@@ -39,32 +40,40 @@ public abstract class AbstractScriptTest {
     @Parameterized.Parameter
     public String dockerService;
 
-    protected AbstractScript script;
-
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {
         return CONTAINERS.keySet().toArray();
     }
 
+    private Container container;
+
     @SuppressWarnings("NullAway")
     @Before
     public void setUp() throws Throwable {
-        DockerPort servicePort = DOCKER_RULE.dockerCompose()
-                .ports(dockerService)
+        container = DOCKER_RULE.containers().container(dockerService);
+        container.start();
+    }
+
+    protected AbstractScript buildScript(DequeueStrategy dequeueStrategy) {
+        DockerPort servicePort = container
+                .ports()
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("No port defined"));
-
-        if (CONTAINERS.get(dockerService)) {
+        if (isSingleNode()) {
             SingleNodeRedisConnector singleNodeRedisConnector =
                     new SingleNodeRedisConnector(servicePort.getIp(), servicePort.getExternalPort());
             singleNodeRedisConnector.flush();
-            script = new SingleNodeScript(singleNodeRedisConnector.getJedisPool(), 0);
+            return new SingleNodeScript(singleNodeRedisConnector.getJedisPool(), 0, dequeueStrategy);
         } else {
             RedisClusterConnector redisClusterConnector =
                     new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
             redisClusterConnector.flush();
-            script = new ClusterScript(redisClusterConnector.getJedisCluster(), 12);
+            return new ClusterScript(redisClusterConnector.getJedisCluster(), 12, dequeueStrategy);
         }
+    }
+
+    protected boolean isSingleNode() {
+        return CONTAINERS.get(dockerService);
     }
 }

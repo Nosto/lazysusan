@@ -24,43 +24,67 @@ function public.enqueue(slot, queue, time, nexttime, tenant, key, payload)
     end
 end
 
-function public.dequeue(slot, queue, time, message_nexttime, maxkeys)
+function public.dequeue(slot, queue, time, message_nexttime, maxkeys, multiple_per_tenant)
+    -- Command-line arguments (maxkeys, multiple_per_tenant) are strings
+    -- so we need to convert them integer and boolean
+    local max_count = tonumber(maxkeys)
+    local only_one_per_tenant = multiple_per_tenant == "0" -- 0=false, 1=true
+
     local schedule_key = private.schedule_key(slot, queue)
-    local tenants = redis.call("zrangebyscore", schedule_key, "-inf", time, "LIMIT", 0, maxkeys) -- todo maxkeys
+    local tenants = redis.call("zrangebyscore", schedule_key, "-inf", time, "LIMIT", 0, maxkeys)
     local result = {}
-    for _, tenant in ipairs(tenants) do
-        local invisible_key = private.invisible_key(slot, queue, tenant)
-        local tenant_nexttime = time + redis.call("hget", private.period(slot, queue), tenant)
+    local result_count = 0
+    local result_count_before_current_round = 0
 
-        local invisible = redis.call("zrangebyscore", invisible_key, "-inf", time, "LIMIT", 0, 1)
-        if next(invisible) == nil then
-            local visible = redis.call("zrangebyscore", private.visible_key(slot, queue, tenant), "-inf", "+inf", "LIMIT", 0, 1)
+    repeat
+        result_count_before_current_round = result_count
+        for _, tenant in ipairs(tenants) do
+            -- Dequeue new messages only if max_count has not been reached yet
+            if result_count < max_count then
+                local invisible_key = private.invisible_key(slot, queue, tenant)
+                local tenant_nexttime = time + redis.call("hget", private.period(slot, queue), tenant)
 
-            if next(visible) then
-                local _, key = next(visible)
-                local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
-                redis.call("zrem", private.visible_key(slot, queue, tenant), key)
+                local invisible = redis.call("zrangebyscore", invisible_key, "-inf", time, "LIMIT", 0, 1)
+                if next(invisible) == nil then
+                    local visible = redis.call("zrangebyscore", private.visible_key(slot, queue, tenant), "-inf", "+inf", "LIMIT", 0, 1)
 
-                redis.call("zadd", invisible_key, message_nexttime, key)
+                    if next(visible) then
+                        local _, key = next(visible)
+                        local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
+                        redis.call("zrem", private.visible_key(slot, queue, tenant), key)
 
-                result[#result + 1] = tenant
-                result[#result + 1] = key
-                result[#result + 1] = payload
-                redis.call("zadd", schedule_key, tenant_nexttime, tenant)
+                        redis.call("zadd", invisible_key, message_nexttime, key)
+
+                        result[#result + 1] = tenant
+                        result[#result + 1] = key
+                        result[#result + 1] = payload
+                        result_count = result_count + 1
+                        redis.call("zadd", schedule_key, tenant_nexttime, tenant)
+                    end
+                else
+                    local _, key = next(invisible)
+                    local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
+                    redis.call("zadd", schedule_key, tenant_nexttime, tenant)
+
+                    redis.call("zrem", invisible_key, key)
+                    redis.call("zadd", invisible_key, message_nexttime, key)
+
+                    result[#result + 1] = tenant
+                    result[#result + 1] = key
+                    result[#result + 1] = payload
+                    result_count = result_count + 1
+                end
             end
-        else
-            local _, key = next(invisible)
-            local payload = redis.call("hget", private.payload_key(slot, queue, tenant), key)
-            redis.call("zadd", schedule_key, tenant_nexttime, tenant)
-
-            redis.call("zrem", invisible_key, key)
-            redis.call("zadd", invisible_key, message_nexttime, key)
-
-            result[#result + 1] = tenant
-            result[#result + 1] = key
-            result[#result + 1] = payload
         end
-    end
+    -- Repeat dequeing
+    -- - only if only_one_per_tenant is false (multiple messages per tenant was requested)
+    -- - until result_count
+    --   - has reached requested max_count or
+    --   - is same as in the beginning of current round in repeat..until
+    --     meaning that this round did not dequeue any messages so either queue is empty or
+    --     there are only invisible messages to which invisibility time has not passed yet.
+    until only_one_per_tenant or result_count == max_count or result_count == result_count_before_current_round
+
     return result
 end
 
