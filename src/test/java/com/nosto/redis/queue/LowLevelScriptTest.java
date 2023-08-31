@@ -22,9 +22,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class LowLevelScriptTest extends AbstractScriptTest {
+    private AbstractScript script;
+
+    @Before
+    public void buildScript() {
+        script = buildScript(DequeueStrategy.ONE_PER_TENANT);
+    }
+
     @Test
     public void dequeEmpty() {
         assertEquals(Collections.emptyList(),

@@ -24,11 +24,13 @@ class SingleNodeScript extends AbstractScript {
 
     private final JedisPool jedisPool;
     private final int dbIndex;
+    private final DequeueStrategy dequeueStrategy;
     private final byte[] sha;
 
-    SingleNodeScript(JedisPool jedisPool, int dbIndex) {
+    SingleNodeScript(JedisPool jedisPool, int dbIndex, DequeueStrategy dequeueStrategy) {
         this.jedisPool = jedisPool;
         this.dbIndex = dbIndex;
+        this.dequeueStrategy = dequeueStrategy;
         byte[] loadedScript = loadScript();
         sha = executeJedis(jedis -> jedis.scriptLoad(loadedScript));
     }
@@ -41,7 +43,8 @@ class SingleNodeScript extends AbstractScript {
                 bytes(queue),
                 bytes(now.toEpochMilli()),
                 bytes(now.plus(invisiblePeriod).toEpochMilli()),
-                bytes(maxKeys)));
+                bytes(maxKeys),
+                bytes(dequeueStrategy == DequeueStrategy.MULTIPLE_PER_TENANT)));
     }
 
     @SuppressWarnings("unchecked")

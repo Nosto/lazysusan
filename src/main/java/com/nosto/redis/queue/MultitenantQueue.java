@@ -28,30 +28,35 @@ public class MultitenantQueue {
     /**
      * Connect the multi-tenant queue to a single Redis node.
      *
-     * @param queueName The name of the queue.
-     * @param jedisPool The Redis node to connect to.
-     * @param dbIndex   The index of the DB to use.
+     * @param queueName       The name of the queue.
+     * @param jedisPool       The Redis node to connect to.
+     * @param dbIndex         The index of the DB to use.
+     * @param dequeueStrategy Defines how dequeue behaves if more messages are dequeued than there are tenants in queue.
      */
     public MultitenantQueue(String queueName,
                             JedisPool jedisPool,
-                            int dbIndex) {
-        this(queueName, new SingleNodeScript(jedisPool, dbIndex));
+                            int dbIndex,
+                            DequeueStrategy dequeueStrategy) {
+        this(queueName, new SingleNodeScript(jedisPool, dbIndex, dequeueStrategy));
     }
 
     /**
      * Connect the multi-tenant queue to a Redis cluster.
      *
-     * @param queueName    The name of the queue.
-     * @param jedisCluster The Redis cluster to connect to.
-     * @param shards       The number of shards used for balancing the data across the cluster.
+     * @param queueName       The name of the queue.
+     * @param jedisCluster    The Redis cluster to connect to.
+     * @param shards          The number of shards used for balancing the data across the cluster.
+     * @param dequeueStrategy Defines how dequeue behaves if more messages are dequeued than there are tenants in queue.
      */
     public MultitenantQueue(String queueName,
                             JedisCluster jedisCluster,
-                            int shards) {
-        this(queueName, new ClusterScript(jedisCluster, shards));
+                            int shards,
+                            DequeueStrategy dequeueStrategy) {
+        this(queueName, new ClusterScript(jedisCluster, shards, dequeueStrategy));
     }
 
-    MultitenantQueue(String queueName, AbstractScript redisScript) {
+    MultitenantQueue(String queueName,
+                     AbstractScript redisScript) {
         this.queueName = Objects.requireNonNull(queueName);
         this.redisScript = redisScript;
     }
