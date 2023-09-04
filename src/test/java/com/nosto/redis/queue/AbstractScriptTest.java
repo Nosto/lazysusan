@@ -10,8 +10,7 @@
 package com.nosto.redis.queue;
 
 import com.palantir.docker.compose.connection.Container;
-import org.junit.Before;
-import org.junit.ClassRule;
+import com.palantir.docker.compose.connection.waiting.HealthChecks;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -21,15 +20,13 @@ import com.nosto.redis.SingleNodeRedisConnector;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
 
+import java.util.stream.IntStream;
+
 /**
  * Extend this class to run tests against a single Redis node and a Redis cluster.
  */
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
-    @ClassRule
-    public static final DockerComposeRule DOCKER_RULE = DockerComposeRule.builder()
-            .file("src/test/resources/docker-compose.yml")
-            .build();
     // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
     private static final ImmutableMap<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
             .put("redis6single", true)
@@ -37,6 +34,7 @@ public abstract class AbstractScriptTest {
             .put("redis7single", true)
             .put("redis7cluster", false)
             .build();
+
     @Parameterized.Parameter
     public String dockerService;
 
@@ -45,31 +43,55 @@ public abstract class AbstractScriptTest {
         return CONTAINERS.keySet().toArray();
     }
 
-    private Container container;
-
-    @SuppressWarnings("NullAway")
-    @Before
-    public void setUp() throws Throwable {
-        container = DOCKER_RULE.containers().container(dockerService);
-        container.start();
+    protected static DockerComposeRule dockerComposeRule() {
+        DockerComposeRule.Builder builder = DockerComposeRule.builder()
+                .file("src/test/resources/docker-compose.yml");
+        CONTAINERS.keySet()
+                .stream()
+                .forEach(service -> builder.waitingForService(service, HealthChecks.toHaveAllPortsOpen()));
+        return builder.build();
     }
 
-    protected AbstractScript buildScript(DequeueStrategy dequeueStrategy) {
-        DockerPort servicePort = container
-                .ports()
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No port defined"));
-        if (isSingleNode()) {
-            SingleNodeRedisConnector singleNodeRedisConnector =
-                    new SingleNodeRedisConnector(servicePort.getIp(), servicePort.getExternalPort());
-            singleNodeRedisConnector.flush();
-            return new SingleNodeScript(singleNodeRedisConnector.getJedisPool(), 0, dequeueStrategy);
-        } else {
-            RedisClusterConnector redisClusterConnector =
-                    new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
-            redisClusterConnector.flush();
-            return new ClusterScript(redisClusterConnector.getJedisCluster(), 12, dequeueStrategy);
+    protected AbstractScript buildScript(DockerComposeRule dockerComposeRule, DequeueStrategy dequeueStrategy) {
+        try {
+            DockerPort servicePort = dockerComposeRule.dockerCompose()
+                    .ports(dockerService)
+                    .stream()
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No port defined"));
+            waitToStartUp(dockerComposeRule.containers().container(dockerService));
+            if (isSingleNode()) {
+                SingleNodeRedisConnector singleNodeRedisConnector =
+                        new SingleNodeRedisConnector(servicePort.getIp(), servicePort.getExternalPort());
+                singleNodeRedisConnector.flush();
+                return new SingleNodeScript(singleNodeRedisConnector.getJedisPool(), 0, dequeueStrategy);
+            } else {
+                RedisClusterConnector redisClusterConnector =
+                        new RedisClusterConnector(servicePort.getIp(), servicePort.getExternalPort());
+                redisClusterConnector.flush();
+                return new ClusterScript(redisClusterConnector.getJedisCluster(), 12, dequeueStrategy);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to start service " + dockerService, e);
+        }
+    }
+
+    private void waitToStartUp(Container container) {
+        int trials = 5;
+        if (IntStream.range(0, trials).filter(r -> isHealthy(container)).findFirst().isEmpty()) {
+            throw new IllegalStateException("Failed to start service " + dockerService);
+        }
+    }
+
+    private boolean isHealthy(Container container) {
+        try {
+            boolean healthy = container.state().isHealthy();
+            if (!healthy) {
+                Thread.sleep(1000);
+            }
+            return healthy;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

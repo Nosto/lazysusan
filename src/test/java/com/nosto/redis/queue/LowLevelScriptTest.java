@@ -22,15 +22,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.palantir.docker.compose.DockerComposeRule;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class LowLevelScriptTest extends AbstractScriptTest {
+
+    @ClassRule
+    public static final DockerComposeRule DOCKER_RULE = dockerComposeRule();
+
     private AbstractScript script;
 
     @Before
     public void buildScript() {
-        script = buildScript(DequeueStrategy.ONE_PER_TENANT);
+        script = buildScript(DOCKER_RULE, DequeueStrategy.ONE_PER_TENANT);
     }
 
     @Test

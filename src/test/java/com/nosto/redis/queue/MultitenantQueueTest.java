@@ -19,9 +19,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.palantir.docker.compose.DockerComposeRule;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 public class MultitenantQueueTest extends AbstractScriptTest {
+
+    @ClassRule
+    public static final DockerComposeRule DOCKER_RULE = dockerComposeRule();
 
     @Test
     public void delete() {
@@ -144,6 +149,6 @@ public class MultitenantQueueTest extends AbstractScriptTest {
     }
 
     private MultitenantQueue buildQueue(DequeueStrategy dequeueStrategy) {
-        return new MultitenantQueue("q1", buildScript(dequeueStrategy));
+        return new MultitenantQueue("q1", buildScript(DOCKER_RULE, dequeueStrategy));
     }
 }
