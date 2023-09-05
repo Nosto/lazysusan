@@ -39,6 +39,7 @@ public class RedisClusterConnector extends RedisConnector {
                 .filter(this::ping)
                 .count();
         boolean allNodesAlive = clusterNodes.size() == aliveNodeCount;
+        System.out.println("=== Redis cluster node count: " + clusterNodes.size());
         if (!allNodesAlive) {
             logger.error("All Redis nodes are not alive yet. Total nodes: " + clusterNodes.size() + ", alive nodes; " + aliveNodeCount);
             System.out.println("=== All Redis nodes are not alive yet. Total nodes: " + clusterNodes.size() + ", alive nodes; " + aliveNodeCount);
