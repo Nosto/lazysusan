@@ -28,7 +28,7 @@ import org.apache.commons.io.IOUtils;
 /**
  * Java wrapper for executing a Redis script.
  */
-abstract class AbstractScript {
+public abstract class AbstractScript {
     static byte[] bytes(String string) {
         return string.getBytes(StandardCharsets.UTF_8);
     }

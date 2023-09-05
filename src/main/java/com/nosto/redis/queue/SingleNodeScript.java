@@ -19,7 +19,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-class SingleNodeScript extends AbstractScript {
+public class SingleNodeScript extends AbstractScript {
     private static final byte[] SLOT = new byte[]{};
 
     private final JedisPool jedisPool;
@@ -27,7 +27,7 @@ class SingleNodeScript extends AbstractScript {
     private final DequeueStrategy dequeueStrategy;
     private final byte[] sha;
 
-    SingleNodeScript(JedisPool jedisPool, int dbIndex, DequeueStrategy dequeueStrategy) {
+    public SingleNodeScript(JedisPool jedisPool, int dbIndex, DequeueStrategy dequeueStrategy) {
         this.jedisPool = jedisPool;
         this.dbIndex = dbIndex;
         this.dequeueStrategy = dequeueStrategy;

@@ -9,7 +9,38 @@
  */
 package com.nosto.redis;
 
+import com.nosto.redis.queue.AbstractScript;
+import com.nosto.redis.queue.DequeueStrategy;
+
+import java.util.stream.IntStream;
+
+// TODO: Convert to abstract class and hide internal implementation from outsiders
+// TODO: Move to same package as redis script classes to avoid visibility changes
 public interface RedisConnector {
-    @SuppressWarnings("unused")
-    void flush();
+    boolean isAlive();
+
+    RedisConnector flush();
+
+    AbstractScript buildRedisScript(DequeueStrategy dequeueStrategy);
+
+    default RedisConnector waitToStartUp(String dockerService) {
+        int trials = 5;
+        if (IntStream.range(0, trials).filter(r -> waitIfNotAlive()).findFirst().isEmpty()) {
+            throw new IllegalStateException("Failed to start service " + dockerService);
+        }
+        return this;
+    }
+
+    default boolean waitIfNotAlive() {
+        boolean alive = isAlive();
+        if (!alive) {
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return alive;
+    }
+
 }

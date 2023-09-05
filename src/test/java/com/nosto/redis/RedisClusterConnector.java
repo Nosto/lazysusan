@@ -9,26 +9,46 @@
  */
 package com.nosto.redis;
 
+import com.nosto.redis.queue.AbstractScript;
+import com.nosto.redis.queue.ClusterScript;
+import com.nosto.redis.queue.DequeueStrategy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisDataException;
+
+import java.util.Collection;
 
 @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
 public class RedisClusterConnector implements RedisConnector {
     private final JedisCluster jedisCluster;
+    private final int numSlots;
 
-    public RedisClusterConnector(String host, int port) {
+    public RedisClusterConnector(String host, int port, int numSlots) {
         jedisCluster = new JedisCluster(new HostAndPort(host, port));
-    }
-
-    public JedisCluster getJedisCluster() {
-        return jedisCluster;
+        this.numSlots = numSlots;
     }
 
     @Override
-    public void flush() {
+    public boolean isAlive() {
+        Collection<JedisPool> clusterNodes = jedisCluster.getClusterNodes().values();
+        long aliveNodeCount = clusterNodes
+                .stream()
+                .filter(jedisPool -> {
+                    try (Jedis jedis = jedisPool.getResource()) {
+                        return "PONG".equals(jedis.ping());
+                    } catch (Exception e) {
+                        return false;
+                    }
+                })
+                .count();
+        return clusterNodes.size() == aliveNodeCount;
+    }
+
+    @Override
+    public RedisConnector flush() {
         jedisCluster.getClusterNodes().forEach((key, jedisPool) -> {
             try (Jedis j = jedisPool.getResource()) {
                 j.flushDB();
@@ -36,5 +56,11 @@ public class RedisClusterConnector implements RedisConnector {
                 // redis.clients.jedis.exceptions.JedisDataException: READONLY You can't write against a read only slave
             }
         });
+        return this;
+    }
+
+    @Override
+    public AbstractScript buildRedisScript(DequeueStrategy dequeueStrategy) {
+        return new ClusterScript(jedisCluster, numSlots, dequeueStrategy);
     }
 }

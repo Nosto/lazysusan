@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.exceptions.JedisNoScriptException;
 
-class ClusterScript extends AbstractScript {
+public class ClusterScript extends AbstractScript {
     private final BinaryJedisCluster jedis;
     private final byte[] source;
     private final byte[] sha;
@@ -35,7 +35,7 @@ class ClusterScript extends AbstractScript {
     private final int numSlots;
     private final DequeueStrategy dequeueStrategy;
 
-    ClusterScript(BinaryJedisCluster jedis, int numSlots, DequeueStrategy dequeueStrategy) {
+    public ClusterScript(BinaryJedisCluster jedis, int numSlots, DequeueStrategy dequeueStrategy) {
         this.jedis = jedis;
         this.numSlots = numSlots;
         this.dequeueStrategy = dequeueStrategy;

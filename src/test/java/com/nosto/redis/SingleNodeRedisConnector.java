@@ -9,6 +9,9 @@
  */
 package com.nosto.redis;
 
+import com.nosto.redis.queue.AbstractScript;
+import com.nosto.redis.queue.DequeueStrategy;
+import com.nosto.redis.queue.SingleNodeScript;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -21,14 +24,25 @@ public class SingleNodeRedisConnector implements RedisConnector {
         jedisPool = new JedisPool(host, port);
     }
 
-    public JedisPool getJedisPool() {
-        return jedisPool;
+    @Override
+    public boolean isAlive() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            return "PONG".equals(jedis.ping());
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Override
-    public void flush() {
+    public RedisConnector flush() {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.flushDB();
         }
+        return this;
+    }
+
+    @Override
+    public AbstractScript buildRedisScript(DequeueStrategy dequeueStrategy) {
+        return new SingleNodeScript(jedisPool, 0, dequeueStrategy);
     }
 }
