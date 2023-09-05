@@ -10,9 +10,9 @@ for PORT in $(seq "$1" "$2"); do
 done
 
 if [ -f /redis-src/redis/src/redis-trib.rb ]; then
-  echo "yes" | eval ruby /redis-src/redis/src/redis-trib.rb create --replicas 1 "$NODES"
+  echo "yes" | eval ruby /redis-src/redis/src/redis-trib.rb create --replicas 0 "$NODES"
 else
-  echo "yes" | eval redis-cli --cluster create "$NODES" --cluster-replicas 1
+  echo "yes" | eval redis-cli --cluster create "$NODES" --cluster-replicas 0
 fi
 
 tail -f "$1".log
