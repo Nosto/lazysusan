@@ -50,6 +50,8 @@ public abstract class AbstractScriptTest {
     }
 
     protected AbstractScript buildScript(DockerComposeRule dockerComposeRule, DequeueStrategy dequeueStrategy) {
+        logger.info("=== buildScript started");
+        System.out.println("--- buildScript started");
         try {
             DockerPort servicePort = dockerComposeRule.dockerCompose()
                     .ports(dockerService)
