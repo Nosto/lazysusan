@@ -44,6 +44,7 @@ public abstract class RedisConnector {
     protected boolean ping(JedisPool jedisPool) {
         try (Jedis jedis = jedisPool.getResource()) {
             String pingResponse = jedis.ping();
+            System.out.println("=== pingResponse: " + pingResponse);
             boolean alive = "PONG".equals(pingResponse);
             if (!alive) {
                 logger.error("Redis not alive. Response: " + pingResponse);
