@@ -17,7 +17,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-public class SingleNodeRedisConnector implements RedisConnector {
+public class SingleNodeRedisConnector extends RedisConnector {
     private final JedisPool jedisPool;
 
     public SingleNodeRedisConnector(String host, int port) {
@@ -26,11 +26,7 @@ public class SingleNodeRedisConnector implements RedisConnector {
 
     @Override
     public boolean isAlive() {
-        try (Jedis jedis = jedisPool.getResource()) {
-            return "PONG".equals(jedis.ping());
-        } catch (Exception e) {
-            return false;
-        }
+        return ping(jedisPool);
     }
 
     @Override

@@ -11,30 +11,53 @@ package com.nosto.redis;
 
 import com.nosto.redis.queue.AbstractScript;
 import com.nosto.redis.queue.DequeueStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.util.stream.IntStream;
 
 // TODO: Convert to abstract class and hide internal implementation from outsiders
 // TODO: Move to same package as redis script classes to avoid visibility changes
-public interface RedisConnector {
-    boolean isAlive();
+public abstract class RedisConnector {
+    protected static final Logger logger = LoggerFactory.getLogger(RedisConnector.class);
 
-    RedisConnector flush();
+    protected abstract boolean isAlive();
 
-    AbstractScript buildRedisScript(DequeueStrategy dequeueStrategy);
+    public abstract RedisConnector flush();
 
-    default RedisConnector waitToStartUp(String dockerService) {
+    public abstract AbstractScript buildRedisScript(DequeueStrategy dequeueStrategy);
+
+    public RedisConnector waitToStartUp(String dockerService) {
         int trials = 5;
-        if (IntStream.range(0, trials).filter(r -> waitIfNotAlive()).findFirst().isEmpty()) {
-            throw new IllegalStateException("Failed to start service " + dockerService);
+        if (IntStream.range(0, trials).filter(this::waitIfNotAlive).findFirst().isEmpty()) {
+            IllegalStateException e = new IllegalStateException("Failed to start service " + dockerService);
+            logger.error("waitToStartUp failed", e);
+            throw e;
         }
         return this;
     }
 
-    default boolean waitIfNotAlive() {
+    protected boolean ping(JedisPool jedisPool) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            String pingResponse = jedis.ping();
+            boolean alive = "PONG".equals(pingResponse);
+            if (!alive) {
+                logger.error("Redis not alive. Response: " + pingResponse);
+            }
+            return alive;
+        } catch (Exception e) {
+            logger.error("Redis ping failed.", e);
+            return false;
+        }
+    }
+
+    private boolean waitIfNotAlive(int round) {
         boolean alive = isAlive();
         if (!alive) {
             try {
+                logger.info("Trial " + round + ": Redshift not alive yet. Wait for awhile.");
                 Thread.sleep(1000);
             } catch (Exception e) {
                 throw new RuntimeException(e);

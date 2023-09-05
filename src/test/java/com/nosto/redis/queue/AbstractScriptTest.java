@@ -18,12 +18,15 @@ import com.nosto.redis.RedisClusterConnector;
 import com.nosto.redis.SingleNodeRedisConnector;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.DockerPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Extend this class to run tests against a single Redis node and a Redis cluster.
  */
 @RunWith(Parameterized.class)
 public abstract class AbstractScriptTest {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractScriptTest.class);
     // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
     private static final ImmutableMap<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
             .put("redis6single", true)
@@ -61,7 +64,9 @@ public abstract class AbstractScriptTest {
                     .flush()
                     .buildRedisScript(dequeueStrategy);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to start service " + dockerService, e);
+            String msg = "Failed to start service " + dockerService;
+            logger.error(msg, e);
+            throw new IllegalStateException(msg, e);
         }
     }
 

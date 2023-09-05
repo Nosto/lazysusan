@@ -22,7 +22,7 @@ import redis.clients.jedis.exceptions.JedisDataException;
 import java.util.Collection;
 
 @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-public class RedisClusterConnector implements RedisConnector {
+public class RedisClusterConnector extends RedisConnector {
     private final JedisCluster jedisCluster;
     private final int numSlots;
 
@@ -36,15 +36,13 @@ public class RedisClusterConnector implements RedisConnector {
         Collection<JedisPool> clusterNodes = jedisCluster.getClusterNodes().values();
         long aliveNodeCount = clusterNodes
                 .stream()
-                .filter(jedisPool -> {
-                    try (Jedis jedis = jedisPool.getResource()) {
-                        return "PONG".equals(jedis.ping());
-                    } catch (Exception e) {
-                        return false;
-                    }
-                })
+                .filter(this::ping)
                 .count();
-        return clusterNodes.size() == aliveNodeCount;
+        boolean allNodesAlive = clusterNodes.size() == aliveNodeCount;
+        if (!allNodesAlive) {
+            logger.error("All Redis nodes are not alive yet. Total nodes: " + clusterNodes.size() + ", alive nodes; " + aliveNodeCount);
+        }
+        return allNodesAlive;
     }
 
     @Override
