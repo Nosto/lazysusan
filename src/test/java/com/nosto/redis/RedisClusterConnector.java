@@ -41,6 +41,7 @@ public class RedisClusterConnector extends RedisConnector {
         boolean allNodesAlive = clusterNodes.size() == aliveNodeCount;
         if (!allNodesAlive) {
             logger.error("All Redis nodes are not alive yet. Total nodes: " + clusterNodes.size() + ", alive nodes; " + aliveNodeCount);
+            System.out.println("=== All Redis nodes are not alive yet. Total nodes: " + clusterNodes.size() + ", alive nodes; " + aliveNodeCount);
         }
         return allNodesAlive;
     }

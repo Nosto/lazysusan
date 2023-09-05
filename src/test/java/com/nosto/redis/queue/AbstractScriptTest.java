@@ -50,8 +50,7 @@ public abstract class AbstractScriptTest {
     }
 
     protected AbstractScript buildScript(DockerComposeRule dockerComposeRule, DequeueStrategy dequeueStrategy) {
-        logger.info("=== buildScript started");
-        System.out.println("--- buildScript started");
+        System.out.println("=== buildScript started");
         try {
             DockerPort servicePort = dockerComposeRule.dockerCompose()
                     .ports(dockerService)
@@ -66,8 +65,10 @@ public abstract class AbstractScriptTest {
                     .flush()
                     .buildRedisScript(dequeueStrategy);
         } catch (Exception e) {
-            String msg = "Failed to start service " + dockerService;
+            String msg = "=== Failed to start service " + dockerService;
             logger.error(msg, e);
+            System.out.println(msg);
+            e.printStackTrace();
             throw new IllegalStateException(msg, e);
         }
     }

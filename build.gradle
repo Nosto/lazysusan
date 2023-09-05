@@ -34,6 +34,9 @@ dependencies {
 
 test {
     ignoreFailures Boolean.getBoolean("test.ignoreFailures")
+    testLogging {
+        showStandardStreams = true
+    }
 }
 
 publishing {
