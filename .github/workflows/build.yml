@@ -3,15 +3,18 @@ on: push
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on:
+      group: Personalisation
+      labels: [self-hosted, linux, x64]
     steps:
-      - uses: actions/checkout@v2
+      - name: Prepare
+        uses: Nosto/github-actions/actions/prepare@main
+        id: prepare
 
-      - name: Set up JDK
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11
+      # - name: Set up JDK
+      #   uses: actions/setup-java@v1
+      #   with:
+      #     java-version: 11
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -35,4 +38,3 @@ jobs:
         with:
           name: gradle-build
           path: build
-          
