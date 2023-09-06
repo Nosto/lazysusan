@@ -7,9 +7,10 @@ jobs:
       group: Personalisation
       labels: [self-hosted, linux, x64]
     steps:
-      - name: Prepare
-        uses: Nosto/github-actions/actions/prepare@main
-        id: prepare
+      - uses: actions/checkout@v4
+
+      - name: Post cleanup
+        uses: TooMuch4U/actions-clean@v2.1
 
       # - name: Set up JDK
       #   uses: actions/setup-java@v1
