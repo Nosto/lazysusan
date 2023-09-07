@@ -12,25 +12,19 @@ services:
       - "7004"
   redis6cluster:
     image: redis:6.0
-    command: create-cluster.sh 7040 7045
+    command: create-cluster.sh 7040 7042
     ports:
       - "7040:7040"
       - "7041:7041"
       - "7042:7042"
-      - "7043:7043"
-      - "7044:7044"
-      - "7045:7045"
     volumes:
       - ./create-cluster.sh:/usr/local/bin/create-cluster.sh
   redis7cluster:
     image: redis:7.0
-    command: create-cluster.sh 7050 7055
+    command: create-cluster.sh 7050 7052
     ports:
       - "7050:7050"
       - "7051:7051"
       - "7052:7052"
-      - "7053:7053"
-      - "7054:7054"
-      - "7055:7055"
     volumes:
       - ./create-cluster.sh:/usr/local/bin/create-cluster.sh
