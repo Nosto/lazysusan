@@ -11,6 +11,7 @@ package com.nosto.redis.queue;
 
 import com.nosto.docker.Slf4jLogCollector;
 import com.palantir.docker.compose.connection.Ports;
+import org.apache.commons.lang3.BooleanUtils;
 import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,7 +38,7 @@ public abstract class AbstractScriptTest {
             .build();
 
     @Parameterized.Parameter
-    public String dockerService;
+    public String dockerService = "";
 
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {
@@ -71,6 +72,6 @@ public abstract class AbstractScriptTest {
     }
 
     protected boolean isSingleNode() {
-        return CONTAINERS.get(dockerService);
+        return BooleanUtils.toBoolean(CONTAINERS.get(dockerService));
     }
 }

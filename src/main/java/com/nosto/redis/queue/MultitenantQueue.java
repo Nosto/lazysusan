@@ -110,6 +110,8 @@ public class MultitenantQueue {
     }
 
     /**
+     * Message counts for this queue.
+     *
      * @return Message counts for this queue.
      */
     public QueueStatistics getStatistics() {
