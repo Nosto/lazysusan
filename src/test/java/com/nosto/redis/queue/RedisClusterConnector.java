@@ -37,7 +37,7 @@ public class RedisClusterConnector extends RedisConnector {
                 .count();
         boolean allNodesAlive = nodeCount == aliveNodeCount;
         if (!allNodesAlive) {
-            logger.info("All Redis nodes are not alive yet. Total nodes: " + nodeCount + ", alive nodes; " + aliveNodeCount);
+            logger.info("All Redis nodes are not alive yet. Total nodes: " + nodeCount + ", alive nodes: " + aliveNodeCount);
         }
         return allNodesAlive;
     }

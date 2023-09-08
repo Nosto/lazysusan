@@ -27,7 +27,10 @@ import com.palantir.docker.compose.connection.DockerPort;
 public abstract class AbstractScriptTest {
 
     @ClassRule
-    public static final DockerComposeRule DOCKER_RULE = dockerComposeRule();
+    public static final DockerComposeRule DOCKER_RULE = DockerComposeRule.builder()
+            .file("src/test/resources/docker-compose.yml")
+            .logCollector(new Slf4jLogCollector())
+            .build();
 
     // Names of docker services to connect to and a flag to denote if the container is a single node redis instance.
     private static final ImmutableMap<String, Boolean> CONTAINERS = ImmutableMap.<String, Boolean>builder()
@@ -43,13 +46,6 @@ public abstract class AbstractScriptTest {
     @Parameterized.Parameters(name = "{0}")
     public static Object[] parameters() {
         return CONTAINERS.keySet().toArray();
-    }
-
-    protected static DockerComposeRule dockerComposeRule() {
-        return DockerComposeRule.builder()
-                .file("src/test/resources/docker-compose.yml")
-                .logCollector(new Slf4jLogCollector())
-                .build();
     }
 
     protected AbstractScript buildScript(DequeueStrategy dequeueStrategy) {
