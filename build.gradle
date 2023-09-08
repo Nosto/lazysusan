@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'com.nosto'
-version '2.1.4'
+version '2.1.5'
 
 java {
     sourceCompatibility "11"
