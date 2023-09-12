@@ -38,6 +38,8 @@ public final class TenantMessage {
     }
 
     /**
+     * The tenant associated with the message.
+     *
      * @return The tenant associated with the message.
      */
     public String getTenant() {
@@ -45,6 +47,8 @@ public final class TenantMessage {
     }
 
     /**
+     * A key that identifies the message. Messages with the same key are treated as duplicates.
+     *
      * @return A key that identifies the message. Messages with the same key are treated as duplicates.
      */
     public String getKey() {
@@ -52,6 +56,8 @@ public final class TenantMessage {
     }
 
     /**
+     * The message payload.
+     *
      * @return The message payload.
      */
     @SuppressFBWarnings("EI_EXPOSE_REP")

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020 Nosto Solutions Ltd All Rights Reserved.
+ *  Copyright (c) 2023 Nosto Solutions Ltd All Rights Reserved.
  *
  *  This software is the confidential and proprietary information of
  *  Nosto Solutions Ltd ("Confidential Information"). You shall not
@@ -7,9 +7,9 @@
  *  accordance with the terms of the agreement you entered into with
  *  Nosto Solutions Ltd.
  */
-package com.nosto.redis;
+package com.nosto.redis.queue;
 
-public interface RedisConnector {
-    @SuppressWarnings("unused")
-    void flush();
+public enum DequeueStrategy {
+    ONE_PER_TENANT,
+    MULTIPLE_PER_TENANT
 }

@@ -37,6 +37,10 @@ abstract class AbstractScript {
         return Long.toString(l).getBytes(StandardCharsets.UTF_8);
     }
 
+    static byte[] bytes(boolean bool) {
+        return bytes(bool ? 1 : 0);
+    }
+
     static List<TenantMessage> unpackTenantMessage(List<byte[]> response) {
         ArrayList<TenantMessage> result = new ArrayList<>(response.size() >> 1);
         Iterator<byte[]> it = response.iterator();
