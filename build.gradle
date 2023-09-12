@@ -3,7 +3,7 @@ plugins {
 }
 
 group 'com.nosto'
-version '2.1.5'
+version '2.1.6'
 
 java {
     sourceCompatibility "11"
@@ -21,15 +21,19 @@ dependencies {
     testImplementation (group: 'com.palantir.docker.compose', name: 'docker-compose-rule-junit4', version: '2.0.0') {
         exclude group: 'com.google.guava'
     }
-    implementation group: 'com.google.code.findbugs', name: 'annotations', version: '3.0.0'
+    implementation (group: 'com.google.code.findbugs', name: 'annotations', version: '3.0.1') {
+        // findbugs:annotations itself contains annotations overlapping with annotations coming
+        // from its library dependency net.jcip causing checkForDuplicateClasses to fail.
+        exclude group: 'net.jcip'
+    }
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.20.0'
     compileOnly group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.20.0'
-    implementation group: 'redis.clients', name: 'jedis', version: '2.9.0'
+    implementation group: 'redis.clients', name: 'jedis', version: '2.9.3'
     implementation group: 'commons-io', name: 'commons-io', version: '2.13.0'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.15.2'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.2'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.15.2'
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
     errorprone group: 'com.uber.nullaway', name: 'nullaway', version: '0.10.13'
     errorprone group: 'com.google.errorprone', name: 'error_prone_core', version: '2.21.1'
     spotbugsPlugins group: 'com.h3xstream.findsecbugs', name: 'findsecbugs-plugin', version: '1.12.0'
