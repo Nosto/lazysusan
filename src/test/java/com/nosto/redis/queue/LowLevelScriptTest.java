@@ -108,8 +108,11 @@ public class LowLevelScriptTest extends AbstractScriptTest {
                 "q1",
                 new TenantMessage("t1", "foo", "bar".getBytes(StandardCharsets.UTF_8)));
         dequeueAndAssert(Instant.EPOCH.plusSeconds(1), "q1", Duration.ZERO, "bar");
-        script.ack("q1", "t1", "foo");
+        // Acking message should return true indicating that message did exist in queue.
+        assertTrue(script.ack("q1", "t1", "foo"));
         dequeueAndAssert(Instant.EPOCH.plusSeconds(2), "q1", Duration.ZERO);
+        // Acking same message again should return false indicating that message did not exist in queue anymore.
+        assertFalse(script.ack("q1", "t1", "foo"));
     }
 
     @Test

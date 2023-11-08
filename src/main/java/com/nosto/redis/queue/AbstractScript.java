@@ -29,6 +29,8 @@ import org.apache.commons.io.IOUtils;
  * Java wrapper for executing a Redis script.
  */
 abstract class AbstractScript {
+    private final Long TRUE = 1L;
+
     static byte[] bytes(String string) {
         return string.getBytes(StandardCharsets.UTF_8);
     }
@@ -128,9 +130,10 @@ abstract class AbstractScript {
      * @param queue  The name of the queue.
      * @param tenant The tenant to whom the message belongs.
      * @param key    The de-duplication key of the message to be acked.
+     * @return true if acked message did exist in queue and false otherwise
      */
-    void ack(String queue, String tenant, String key) {
-        call(Function.ACK, slot(tenant), bytes(queue), bytes(tenant), bytes(key));
+    boolean ack(String queue, String tenant, String key) {
+        return TRUE.equals(call(Function.ACK, slot(tenant), bytes(queue), bytes(tenant), bytes(key)));
     }
 
     /**
