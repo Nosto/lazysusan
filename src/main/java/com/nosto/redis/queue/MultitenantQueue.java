@@ -94,9 +94,15 @@ public class MultitenantQueue {
      *
      * @param tenant     The tenant associated with the message.
      * @param messageKey The key that identifies the message.
+     * @return true if deleted message did exist in queue and false otherwise
+     *         If processing of dequeued message takes more time than defined invisibility period
+     *         then same message can be dequeued again after invisibility period has passed. This
+     *         can result to situation where multiple workers read same message and try to delete it
+     *         after processing. If deleted message does not exist it indicates that it was dequeued
+     *         and deleted already before meaning that invisibility period might be too short.
      */
-    public void delete(String tenant, String messageKey) {
-        redisScript.ack(queueName, tenant, messageKey);
+    public boolean delete(String tenant, String messageKey) {
+        return redisScript.ack(queueName, tenant, messageKey);
     }
 
     /**

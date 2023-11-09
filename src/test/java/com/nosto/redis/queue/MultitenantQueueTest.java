@@ -9,9 +9,6 @@
  */
 package com.nosto.redis.queue;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
@@ -20,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class MultitenantQueueTest extends AbstractScriptTest {
 
@@ -35,7 +34,10 @@ public class MultitenantQueueTest extends AbstractScriptTest {
         assertEquals(1, qStats.size());
         assertEquals(new TenantStatistics("t1", 0, 2), qStats.get("t1"));
 
-        queue.delete("t1", "k1");
+        // Deleting message should return true indicating that message did exist in queue.
+        assertTrue(queue.delete("t1", "k1"));
+        // Deleting same message again should return false indicating that message did not exist in queue anymore.
+        assertFalse(queue.delete("t1", "k1"));
 
         qStats = queue.getStatistics()
                 .getTenantStatistics();

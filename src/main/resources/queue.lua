@@ -92,11 +92,12 @@ function public.ack(slot, queue, tenant, key)
     local invisible_key = private.invisible_key(slot, queue, tenant)
     local payload_key = private.payload_key(slot, queue, tenant)
     redis.call("zrem", private.visible_key(slot, queue, tenant), key)
-    redis.call("hdel", payload_key, key)
+    local deleted_messages = tonumber(redis.call("hdel", payload_key, key))
     redis.call("zrem", invisible_key, key)
     if redis.call("hlen", payload_key) == 0 then
         redis.call("zrem", private.schedule_key(slot, queue), tenant)
     end
+    return deleted_messages == 1
 end
 
 function public.queuestats(slot, queue)
